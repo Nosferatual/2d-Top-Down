@@ -25,11 +25,11 @@ public class Weapon : MonoBehaviour
         Vector3 mp = Mouse.current.position.ReadValue();
         mp.z = -cam.transform.position.z;
         Vector3 mWorld = cam.ScreenToWorldPoint(mp);
-
+/*
         Vector2 dir = (mWorld - transform.position).normalized;
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
-
+*/
         // 🔹 Ateş kontrolü
         if (Mouse.current.leftButton.isPressed && cd <= 0f)
             Fire();

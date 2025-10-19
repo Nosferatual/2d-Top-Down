@@ -38,13 +38,13 @@ public class PlayerController : MonoBehaviour
         float depth = cam.WorldToScreenPoint(transform.position).z; // kaymayı önler
         Vector3 mWorld = cam.ScreenToWorldPoint(new Vector3(mp.x, mp.y, depth));
         Vector2 aimDir = (mWorld - transform.position);
-
+/*
         if (aimDir.sqrMagnitude > 0.0001f)
         {
             if (aimUsesUpAxis) transform.up = aimDir.normalized;
             else transform.right = aimDir.normalized;
         }
-        
+        */
 
     }
 
