@@ -3,62 +3,66 @@ using UnityEngine.InputSystem;
 
 public class Weapon : MonoBehaviour
 {
+    [Header("Bullet")]
     public GameObject bulletPrefab;
     public Transform firePoint;
     public float bulletSpeed = 20f;
-    public float fireCooldown = 0.12f;
-    public bool useUpAxis = true;
 
-    Camera cam;
-    float cd;
+    [Header("Timing")]
+    [Tooltip("Animasyon süresi kadar olmalı.")]
+    public float fireCooldown = 0.4f;
+    [Tooltip("Okun çıkacağı an (animasyon ortası).")]
+    public float shootDelay = 0.2f;
 
-    void Awake() => cam = Camera.main;
+    Animator animator;
+    PlayerController playerController;
+    float cooldown;
+    [HideInInspector] public bool isShootingNow = false;
+
+    void Awake()
+    {
+        animator = GetComponentInParent<Animator>();
+        playerController = GetComponentInParent<PlayerController>();
+    }
 
     void Update()
     {
-        cd -= Time.deltaTime;
+        cooldown -= Time.deltaTime;
+        if (Mouse.current == null) return;
 
-        if (cam == null) cam = Camera.main;
-        if (cam == null || Mouse.current == null) return;
-
-        // 🔹 Silahın mouse yönüne bakması
-        Vector3 mp = Mouse.current.position.ReadValue();
-        mp.z = -cam.transform.position.z;
-        Vector3 mWorld = cam.ScreenToWorldPoint(mp);
-/*
-        Vector2 dir = (mWorld - transform.position).normalized;
-        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.Euler(0, 0, angle);
-*/
-        // 🔹 Ateş kontrolü
-        if (Mouse.current.leftButton.isPressed && cd <= 0f)
-            Fire();
-        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+        // tek tıklamada ateş; spam'ı cooldown + isShootingNow engeller
+        if (Mouse.current.leftButton.wasPressedThisFrame && cooldown <= 0f && !isShootingNow)
             Fire();
     }
 
     void Fire()
     {
-        if (!bulletPrefab) { Debug.LogError("[Weapon] bulletPrefab atanmadı."); return; }
-        if (!firePoint)    { Debug.LogError("[Weapon] firePoint atanmadı.");   return; }
+        if (isShootingNow || !bulletPrefab || !firePoint) return;
 
+        isShootingNow = true;
+        if (playerController) playerController.canMove = false; // yürüyüşü kilitle
+        if (animator) animator.SetBool("isShooting", true);
+
+        Invoke(nameof(SpawnArrow), shootDelay);
+        Invoke(nameof(ResetShootAnim), fireCooldown);
+        cooldown = fireCooldown;
+    }
+
+    void SpawnArrow()
+    {
         var go = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
         var rb = go.GetComponent<Rigidbody2D>();
+        if (!rb) return;
 
-        if (!rb)
-        {
-            Debug.LogError("[Weapon] Bullet prefabında Rigidbody2D yok.");
-            Destroy(go);
-            return;
-        }
+        // pivot yönü (right) nereye bakıyorsa ok oraya gider
+        Vector2 dir = (Vector2)firePoint.right;
+        rb.linearVelocity = dir.normalized * bulletSpeed;
+    }
 
-        rb.gravityScale = 0f;
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-        rb.interpolation = RigidbodyInterpolation2D.Interpolate;
-
-        Vector2 dir = useUpAxis ? (Vector2)firePoint.up : (Vector2)firePoint.right;
-        rb.linearVelocity = dir * bulletSpeed;
-
-        cd = fireCooldown;
+    public void ResetShootAnim()
+    {
+        if (animator) animator.SetBool("isShooting", false);
+        isShootingNow = false;
+        if (playerController) playerController.canMove = true; // yürüyüşü aç
     }
 }

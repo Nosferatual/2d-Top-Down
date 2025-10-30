@@ -5,23 +5,26 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 6f;
-    public bool aimUsesUpAxis = true;   // sprite ileri yönün "up" ise true, "right" ise false
+    [HideInInspector] public bool canMove = true;
 
     Rigidbody2D rb;
     Camera cam;
+    Animator animator;
     InputAction moveAction;
 
     void Awake()
     {
-        rb  = GetComponent<Rigidbody2D>();
+        rb = GetComponent<Rigidbody2D>();
         cam = Camera.main;
+        animator = GetComponent<Animator>();
 
+        // WASD + Ok tuşları
         moveAction = new InputAction(type: InputActionType.Value, binding: "");
         var c = moveAction.AddCompositeBinding("2DVector");
-        c.With("Up", "<Keyboard>/w");    c.With("Down", "<Keyboard>/s");
-        c.With("Left","<Keyboard>/a");   c.With("Right","<Keyboard>/d");
-        c.With("Up", "<Keyboard>/upArrow");  c.With("Down","<Keyboard>/downArrow");
-        c.With("Left","<Keyboard>/leftArrow"); c.With("Right","<Keyboard>/rightArrow");
+        c.With("Up", "<Keyboard>/w");           c.With("Down", "<Keyboard>/s");
+        c.With("Left", "<Keyboard>/a");         c.With("Right", "<Keyboard>/d");
+        c.With("Up", "<Keyboard>/upArrow");     c.With("Down", "<Keyboard>/downArrow");
+        c.With("Left", "<Keyboard>/leftArrow"); c.With("Right", "<Keyboard>/rightArrow");
     }
 
     void OnEnable()  => moveAction.Enable();
@@ -29,28 +32,21 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-
-   
-        if (cam == null) cam = Camera.main;
-        if (cam == null || Mouse.current == null) return;
-
-        var mp = Mouse.current.position.ReadValue();
-        float depth = cam.WorldToScreenPoint(transform.position).z; // kaymayı önler
-        Vector3 mWorld = cam.ScreenToWorldPoint(new Vector3(mp.x, mp.y, depth));
-        Vector2 aimDir = (mWorld - transform.position);
-/*
-        if (aimDir.sqrMagnitude > 0.0001f)
-        {
-            if (aimUsesUpAxis) transform.up = aimDir.normalized;
-            else transform.right = aimDir.normalized;
-        }
-        */
-
+        if (!cam) cam = Camera.main; // sadece referans tazeleme
     }
 
     void FixedUpdate()
     {
-        Vector2 move = moveAction.ReadValue<Vector2>().normalized * moveSpeed;
-        rb.MovePosition(rb.position + move * Time.fixedDeltaTime);
+        if (!canMove)
+        {
+            rb.linearVelocity = Vector2.zero;
+            if (animator) animator.SetBool("isRunning", false);
+            return;
+        }
+
+        Vector2 input = moveAction.ReadValue<Vector2>().normalized;
+        rb.MovePosition(rb.position + input * moveSpeed * Time.fixedDeltaTime);
+
+        if (animator) animator.SetBool("isRunning", input.sqrMagnitude > 0.01f);
     }
 }

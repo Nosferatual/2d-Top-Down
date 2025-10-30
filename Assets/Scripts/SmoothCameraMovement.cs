@@ -1,30 +1,42 @@
+// SmoothCameraMovement.cs (güncel)
 using UnityEngine;
 
 public class SmoothCameraMovement : MonoBehaviour
 {
-   [SerializeField] private float damping;
-   [SerializeField]private Vector3 offset;
-   public Transform target;
-  private Vector3 vel = Vector3.zero;
-  private void Update()
-  {
-    Vector3 targetPosition = target.position + offset;
-    targetPosition.z = transform.position.z;
-    transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref
-    vel, damping);
-  }
-   
-   // CameraFollow.cs
-void LateUpdate()
-{
-    Vector3 pos = target.position;
-    pos.z = transform.position.z;
+    [SerializeField] Transform target;
+    [SerializeField] Vector3 offset = Vector3.zero;
+    [SerializeField] float smoothTime = 0.12f;
+    [SerializeField] bool pixelSnap = true;
+    [SerializeField] float pixelsPerUnit = 32f;
+    [SerializeField] float snapWhenSpeedBelow = 0.05f; // durmaya yakınken snap
 
-    // 32, sprite başına piksel sayısı (Pixels Per Unit)
-    pos.x = Mathf.Round(pos.x * 32f) / 32f;
-    pos.y = Mathf.Round(pos.y * 32f) / 32f;
+    Vector3 velocity;
+    Rigidbody2D targetRb;
 
-    transform.position = pos;
+    void Awake()
+    {
+        if (target) targetRb = target.GetComponentInParent<Rigidbody2D>();
+    }
+
+    void LateUpdate()
+    {
+        if (!target) return;
+
+        Vector3 desired = target.position + offset;
+        desired.z = transform.position.z;
+
+        Vector3 smoothed = Vector3.SmoothDamp(transform.position, desired, ref velocity, smoothTime);
+
+        // Sadece oyuncu yavaşken/ dururken snap yap
+        bool shouldSnap = pixelSnap && pixelsPerUnit > 0f &&
+                          (!targetRb || targetRb.linearVelocity.sqrMagnitude < snapWhenSpeedBelow * snapWhenSpeedBelow);
+
+        if (shouldSnap)
+        {
+            smoothed.x = Mathf.Round(smoothed.x * pixelsPerUnit) / pixelsPerUnit;
+            smoothed.y = Mathf.Round(smoothed.y * pixelsPerUnit) / pixelsPerUnit;
+        }
+
+        transform.position = smoothed;
+    }
 }
-
-} 

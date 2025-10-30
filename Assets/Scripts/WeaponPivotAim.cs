@@ -3,46 +3,42 @@ using UnityEngine.InputSystem;
 
 public class WeaponPivotAim : MonoBehaviour
 {
-    public Transform player;           // Player referansı
-    public Transform weaponChild;      // Silah objesi (Weapon)
-    public Vector2 handLocalOffset = new Vector2(0.6f, 0f); // El mesafesi
+    public Transform player;         // Player (root)
+    public Transform weaponChild;    // Weapon (SpriteRenderer olan obje)
+    public Vector2 handLocalOffset = new Vector2(0.6f, 0f);
+    [Tooltip("Silah sprite'ının varsayılanı sağa bakıyorsa true.")]
+    public bool spriteFacesRight = true;
 
-    private Camera cam;
+    Camera cam;
 
-    void Awake() => cam = Camera.main;
+    void Awake() { cam = Camera.main; }
 
     void LateUpdate()
     {
-        if (player == null || weaponChild == null || cam == null || Mouse.current == null)
-            return;
+        if (!player || !weaponChild || !cam || Mouse.current == null) return;
 
-        // Pivot her frame'de player merkezine taşınır
+        // Pivot her kare player merkezinde dursun (child değilse emniyet)
         transform.position = player.position;
 
-        // Mouse konumu -> world
-        Vector3 mp = Mouse.current.position.ReadValue();
-        float depth = cam.WorldToScreenPoint(player.position).z;
-        Vector3 mWorld = cam.ScreenToWorldPoint(new Vector3(mp.x, mp.y, depth));
+        // Mouse -> world
+        Vector2 mp = Mouse.current.position.ReadValue();
+        float z = Mathf.Abs(cam.transform.position.z - transform.position.z);
+        Vector3 mWorld = cam.ScreenToWorldPoint(new Vector3(mp.x, mp.y, z));
         mWorld.z = 0f;
 
-        // Pivot mouse yönüne döner
+        // Pivotu mouse'a döndür (firePoint.right bu yöne bakacak)
         Vector2 dir = (mWorld - transform.position);
-        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.Euler(0, 0, angle - 90f);
+        if (dir.sqrMagnitude < 1e-6f) return;
+        transform.right = dir.normalized;
 
+        // Yarı-düzleme göre sadece görseli flip'le (firePoint etkilenmez)
+        bool leftSide = dir.x < 0f;
+        float yFlip = leftSide ? -1f : 1f;
+        if (!spriteFacesRight) yFlip *= -1f;      // sprite defaultu sola ise tersle
+        weaponChild.localScale = new Vector3(1f, yFlip, 1f);
 
-        // El pozisyonu – local offset world scale'den etkilenmesin
-        weaponChild.localPosition = handLocalOffset;
-
-        // 🔥 Asıl kritik kısım: sola dönünce ters çevirmeyi düzelt
-        // (Artık 180 değil, sadece dikey flip yapıyoruz)
-        if (player.localScale.x < 0)
-        {
-            weaponChild.localScale = new Vector3(1, -1, 1);
-        }
-        else
-        {
-            weaponChild.localScale = Vector3.one;
-        }
+        // Elde duruş ofseti (flipte X ters döner)
+        weaponChild.localPosition = new Vector3(leftSide ? -handLocalOffset.x : handLocalOffset.x,
+                                                handLocalOffset.y, 0f);
     }
 }
