@@ -31,7 +31,14 @@ public class Bullet : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other) { Destroy(gameObject); }
+    void OnTriggerEnter2D(Collider2D other) { Destroy(gameObject); 
+    
+        if (other.CompareTag("Enemy")) // düşmana değdi
+    {
+        Destroy(other.gameObject); // düşman
+        Destroy(gameObject);       // mermi
+    }
+    }
     // Eğer trigger değilse alttakini kullan:
     // void OnCollisionEnter2D(Collision2D other) { Destroy(gameObject); }
 }
