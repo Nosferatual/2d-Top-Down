@@ -8,17 +8,14 @@ public class PlayerController : MonoBehaviour
     [HideInInspector] public bool canMove = true;
 
     Rigidbody2D rb;
-    Camera cam;
-    Animator animator;
     InputAction moveAction;
+    Animator animator; // Walk bool'ünü PlayerAnimation set ediyor ama istersen burada da kullanabilirsin
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        cam = Camera.main;
         animator = GetComponent<Animator>();
 
-        // WASD + Ok tuşları
         moveAction = new InputAction(type: InputActionType.Value, binding: "");
         var c = moveAction.AddCompositeBinding("2DVector");
         c.With("Up", "<Keyboard>/w");           c.With("Down", "<Keyboard>/s");
@@ -30,23 +27,15 @@ public class PlayerController : MonoBehaviour
     void OnEnable()  => moveAction.Enable();
     void OnDisable() => moveAction.Disable();
 
-    void Update()
-    {
-        if (!cam) cam = Camera.main; // sadece referans tazeleme
-    }
-
     void FixedUpdate()
     {
         if (!canMove)
         {
-            rb.linearVelocity = Vector2.zero;
-            if (animator) animator.SetBool("isRunning", false);
+            rb.linearVelocity = Vector2.zero; // sürümün destekliyorsa linearVelocity
             return;
         }
 
         Vector2 input = moveAction.ReadValue<Vector2>().normalized;
         rb.MovePosition(rb.position + input * moveSpeed * Time.fixedDeltaTime);
-
-        if (animator) animator.SetBool("isRunning", input.sqrMagnitude > 0.01f);
     }
 }

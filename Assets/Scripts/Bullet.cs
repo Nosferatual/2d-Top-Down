@@ -2,18 +2,18 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float life = 1.2f;
+    public float life = 3f;
+    public float damage = 10f; // Hasar değeri
 
-    // 🔽 EK: sprite'ı ayrı child olarak bağla
-    public Transform gfx;              
-    // 🔽 EK: sprite ileri eksenine göre ayar (ok sağa bakıyorsa 0, yukarıysa +90, sola bakıyorsa 180)
+    public Transform gfx;      
     public float angleOffset = 0f;     
 
     Rigidbody2D rb;
 
     void Awake() { rb = GetComponent<Rigidbody2D>(); }
 
-    void Update() {
+    void Update() 
+    {
         life -= Time.deltaTime;
         if (life <= 0f) Destroy(gameObject);
     }
@@ -22,8 +22,9 @@ public class Bullet : MonoBehaviour
     {
         if (rb && gfx)
         {
-            Vector2 v = rb.linearVelocity;
-            if (v.sqrMagnitude > 0.0001f)
+            // Unity sürümüne göre 'velocity' veya 'linearVelocity'
+            Vector2 v = rb.linearVelocity; 
+            if (v.sqrMagnitude > 0.001f)
             {
                 float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg + angleOffset;
                 gfx.rotation = Quaternion.Euler(0, 0, ang);
@@ -31,14 +32,12 @@ public class Bullet : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other) { Destroy(gameObject); 
-    
-        if (other.CompareTag("Enemy")) // düşmana değdi
-    {
-        Destroy(other.gameObject); // düşman
-        Destroy(gameObject);       // mermi
+    void OnTriggerEnter2D(Collider2D other) 
+    { 
+        // Sadece duvara çarpınca yok ol. Düşmanı EnemyHit halledecek.
+        if (other.gameObject.layer == LayerMask.NameToLayer("Obstacle") || other.CompareTag("Wall"))
+        {
+            Destroy(gameObject);
+        }
     }
-    }
-    // Eğer trigger değilse alttakini kullan:
-    // void OnCollisionEnter2D(Collision2D other) { Destroy(gameObject); }
 }

@@ -4,38 +4,46 @@ using System.Collections;
 public class EnemySpawner : MonoBehaviour
 {
     public GameObject enemyPrefab;
-    public Transform[] spawnPoints; // sahneye 3-6 boş Transform koy, buraya sürükle
+    public Transform[] spawnPoints; 
     public float interval = 1.5f;
-    public int maxAlive = 20;
+    public int maxAlive = 30;
 
-    int alive;
+    private int aliveCount = 0;
 
-    void OnEnable()  { StartCoroutine(Loop()); }
+    void OnEnable()  { StartCoroutine(SpawnLoop()); }
     void OnDisable() { StopAllCoroutines(); }
 
-    IEnumerator Loop()
+    IEnumerator SpawnLoop()
     {
         var wait = new WaitForSeconds(interval);
         while (true)
         {
-            if (alive < maxAlive && spawnPoints.Length > 0)
+            if (aliveCount < maxAlive && spawnPoints.Length > 0 && enemyPrefab != null)
             {
                 Transform p = spawnPoints[Random.Range(0, spawnPoints.Length)];
-                var go = Instantiate(enemyPrefab, p.position, Quaternion.identity);
-                alive++;
+                GameObject go = Instantiate(enemyPrefab, p.position, Quaternion.identity);
+                aliveCount++;
 
-                // düşman ölünce sayımı azalt
-                var counter = go.AddComponent<OnDestroyCounter>();
-                counter.onDestroyed = () => alive--;
+                // Düşman ölünce sayacı düşür
+                var tracker = go.AddComponent<EnemyTracker>();
+                tracker.spawner = this;
             }
             yield return wait;
         }
     }
 
-    // küçük yardımcı
-    class OnDestroyCounter : MonoBehaviour
+    public void EnemyDied()
     {
-        public System.Action onDestroyed;
-        void OnDestroy() { if (onDestroyed != null) onDestroyed(); }
+        aliveCount--;
+        if (aliveCount < 0) aliveCount = 0;
+    }
+}
+
+public class EnemyTracker : MonoBehaviour
+{
+    public EnemySpawner spawner;
+    void OnDestroy()
+    {
+        if (spawner != null) spawner.EnemyDied();
     }
 }
