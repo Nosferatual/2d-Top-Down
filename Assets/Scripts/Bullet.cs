@@ -3,16 +3,16 @@ using UnityEngine;
 public class Bullet : MonoBehaviour
 {
     public float life = 3f;
-    public float damage = 10f; // Hasar değeri
-
-    public Transform gfx;      
-    public float angleOffset = 0f;     
+    public float damage = 10f;
+    public Transform gfx;
+    public float angleOffset = 0f;
 
     Rigidbody2D rb;
+    bool hit; // aynı karede çoklu collider tetiklerine karşı
 
     void Awake() { rb = GetComponent<Rigidbody2D>(); }
 
-    void Update() 
+    void Update()
     {
         life -= Time.deltaTime;
         if (life <= 0f) Destroy(gameObject);
@@ -20,24 +20,33 @@ public class Bullet : MonoBehaviour
 
     void LateUpdate()
     {
-        if (rb && gfx)
+        if (!rb || !gfx) return;
+        var v = rb.linearVelocity; // sürümün desteklemiyorsa rb.velocity
+        if (v.sqrMagnitude > 0.001f)
         {
-            // Unity sürümüne göre 'velocity' veya 'linearVelocity'
-            Vector2 v = rb.linearVelocity; 
-            if (v.sqrMagnitude > 0.001f)
-            {
-                float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg + angleOffset;
-                gfx.rotation = Quaternion.Euler(0, 0, ang);
-            }
+            float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg + angleOffset;
+            gfx.rotation = Quaternion.Euler(0, 0, ang);
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other) 
-    { 
-        // Sadece duvara çarpınca yok ol. Düşmanı EnemyHit halledecek.
-        if (other.gameObject.layer == LayerMask.NameToLayer("Obstacle") || other.CompareTag("Wall"))
-        {
-            Destroy(gameObject);
-        }
+    void OnTriggerEnter2D(Collider2D other)
+{
+    if (hit) return; // varsa mevcut guard
+
+    var enemy = other.GetComponentInParent<EnemyHit>();
+    if (enemy)
+    {
+        hit = true;               // varsa guard değişkenini set et
+        enemy.Kill();             // anında öldür
+        Destroy(gameObject);      // mermiyi sil
+        return;
     }
+
+    if (other.gameObject.layer == LayerMask.NameToLayer("Obstacle") || other.CompareTag("Wall"))
+    {
+        hit = true;
+        Destroy(gameObject);
+    }
+}
+
 }

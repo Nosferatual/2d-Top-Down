@@ -4,81 +4,90 @@ using UnityEngine.InputSystem;
 
 public class Weapon : MonoBehaviour
 {
-    [Header("Bullet")]
+    [Header("Fire")]
     public GameObject bulletPrefab;
     public Transform firePoint;
     public float bulletSpeed = 20f;
 
-    [Header("Timing")]
-    [Tooltip("Attack klibinin toplam süresi (sn).")]
-    public float attackDuration = 0.40f;
-    [Tooltip("Okun çıkacağı an (sn).")]
-    public float shootDelay    = 0.20f;
+    [Tooltip("Okun çıkacağı an (Attack klibinde normalized time 0..1)")]
+    public float fireAtNormalized = 0.35f;   // klibin ortası gibi
 
-    [Header("Animator")]
-    [Tooltip("Idle state adı (Animator'daki state adı birebir).")]
-    public string idleStateName = "idle";
+    Animator anim;
+    PlayerController pc;
+    bool busy;
 
-    private Animator animator;
-    private PlayerController playerController;
-    private bool isShootingNow;
-    private float cooldown;
-
-    private static readonly int AttackTrig = Animator.StringToHash("Attack");
+    static readonly int AttackTrig = Animator.StringToHash("Attack");
 
     void Awake()
     {
-        animator = GetComponentInParent<Animator>();
-        playerController = GetComponentInParent<PlayerController>();
+        anim = GetComponentInParent<Animator>();
+        pc   = GetComponentInParent<PlayerController>();
     }
 
     void Update()
     {
-        cooldown -= Time.deltaTime;
         if (Mouse.current == null) return;
-
-        if (Mouse.current.leftButton.wasPressedThisFrame && cooldown <= 0f && !isShootingNow)
-            StartCoroutine(ShootRoutine());
+        if (Mouse.current.leftButton.wasPressedThisFrame && !busy)
+            StartCoroutine(AttackRoutine());
     }
 
-    IEnumerator ShootRoutine()
+    IEnumerator AttackRoutine()
     {
-        if (isShootingNow || !bulletPrefab || !firePoint) yield break;
+        busy = true;
 
-        isShootingNow = true;
-        if (playerController) playerController.canMove = false;
+        // Attack'ı tetikle
+        anim.ResetTrigger(AttackTrig);
+        anim.SetTrigger(AttackTrig);
 
-        // 1) Attack animasyonu
-        if (animator) animator.SetTrigger(AttackTrig);
+        // Attack state'ine girene kadar bekle
+        yield return new WaitUntil(() => InAttack());
 
-        // 2) Ok çıkışı
-        if (shootDelay > 0f) yield return new WaitForSeconds(shootDelay);
-        SpawnArrow();
+        if (pc) pc.canMove = false;
 
-        // 3) Klibin kalanı kadar bekle
-        float remain = Mathf.Max(0f, attackDuration - shootDelay);
-        if (remain > 0f) yield return new WaitForSeconds(remain);
-
-        // 4) ZORLA Idle'a dön ve kilidi aç (Animator ayarı şaşsa bile)
-       /* if (animator)
+        bool shot = false;
+        // Attack state'inde kaldığın sürece döngü
+        while (InAttack())
         {
-            animator.ResetTrigger(AttackTrig);
-            if (!string.IsNullOrEmpty(idleStateName))
-                animator.CrossFade(idleStateName, 0f, 0, 0f);
-        }*/
+            var st = anim.GetCurrentAnimatorStateInfo(0);
 
-        if (playerController) playerController.canMove = true;
-        isShootingNow = false;
-        cooldown = attackDuration;
+            // Belirlenen anda oku bir kez çıkar
+            if (!shot && st.normalizedTime >= fireAtNormalized)
+            {
+                SpawnArrow();
+                shot = true;
+            }
+
+            yield return null;
+        }
+
+        // Attack bitti → Locomotion'a döndü
+        if (pc) pc.canMove = true;
+        busy = false;
+    }
+
+    bool InAttack()
+    {
+        if (!anim) return false;
+        // Tag = "Attack" olan state'te misin? (transition dahil)
+        var cur  = anim.GetCurrentAnimatorStateInfo(0);
+        if (anim.IsInTransition(0))
+        {
+            var next = anim.GetNextAnimatorStateInfo(0);
+            return cur.IsTag("Attack") || next.IsTag("Attack");
+        }
+        return cur.IsTag("Attack");
     }
 
     void SpawnArrow()
     {
-        var go = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-        var rb2d = go.GetComponent<Rigidbody2D>();
-        if (!rb2d) return;
+        if (!bulletPrefab || !firePoint) return;
 
-        Vector2 dir = (Vector2)firePoint.right;
-        rb2d.linearVelocity = dir.normalized * bulletSpeed; // sürümün desteklemiyorsa rb2d.velocity kullan
+        var go = Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+        var rb = go.GetComponent<Rigidbody2D>();
+        if (rb)
+        {
+            // Projene göre linearVelocity yoksa rb.velocity kullan
+            rb.linearVelocity = ((Vector2)firePoint.right).normalized * bulletSpeed;
+        }
     }
 }

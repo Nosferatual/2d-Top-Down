@@ -2,46 +2,65 @@ using UnityEngine;
 
 public class PlayerAnimation : MonoBehaviour
 {
-    [Header("Flip için gövde SpriteRenderer")]
-    [SerializeField] private SpriteRenderer body; // boş bırakılırsa auto bulunur
+    [SerializeField] SpriteRenderer body;      // boşsa otomatik bulunur
+    [SerializeField] float enterWalk = 0.20f;  // yürüme için giriş eşiği
+    [SerializeField] float exitWalk  = 0.10f;  // yürümeden çıkış eşiği
+    [SerializeField] float animDamp  = 0.08f;  // Animator.SetFloat damping (s)
+    [SerializeField] float smoothHz  = 10f;    // hız yumuşatma katsayısı
 
-    private Animator animator;
-    private Rigidbody2D rb;
-    private PlayerController pc;
+    static readonly int SpeedHash = Animator.StringToHash("Speed");
 
-    // Animator parametreleri
-    private static readonly int IsMovingParam = Animator.StringToHash("IsMoving");
+    Animator    anim;
+    Rigidbody2D rb;
 
-    // Hız eşiği ve pozisyon takibi
-    [SerializeField] private float moveEps = 0.0004f; // ~0.02 world unit/frame
-    private Vector2 lastPos;
+    Vector2 lastPos;
+    float   smoothSpeed;   // yumuşatılmış hız
+    bool    moving;
+    float   lastDeltaX;    // flip için son frame yatay hareketi
 
     void Awake()
     {
-        animator = GetComponent<Animator>();
-        rb = GetComponent<Rigidbody2D>();
-        pc = GetComponent<PlayerController>();
+        anim = GetComponent<Animator>();
+        rb   = GetComponent<Rigidbody2D>();
         if (!body) body = GetComponentInChildren<SpriteRenderer>();
         lastPos = rb ? rb.position : (Vector2)transform.position;
     }
 
-    void LateUpdate()
+    void FixedUpdate()
     {
-        // MovePosition kullansan bile pozisyon farkı kesin çalışır
-        Vector2 now = rb ? rb.position : (Vector2)transform.position;
+        // MovePosition kullanıyorsan hız ölçümü buradan yapılmalı
+        Vector2 now   = rb ? rb.position : (Vector2)transform.position;
         Vector2 delta = now - lastPos;
 
-        bool canMove = pc == null || pc.canMove;
-        bool isMoving = canMove && (delta.sqrMagnitude > moveEps);
-        if (animator) animator.SetBool(IsMovingParam, isMoving);
+        float rawSpeed = delta.magnitude / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+        // Üstel alçak geçiren filtre (low-pass)
+        float a = 1f - Mathf.Exp(-smoothHz * Time.fixedDeltaTime);
+        smoothSpeed = Mathf.Lerp(smoothSpeed, rawSpeed, a);
 
-        // Flip – kök ölçeğe dokunmadan sadece sprite’ı çevir
-        if (body)
+        // Histerezis: çift eşik ile kararsız bölgeyi yok et
+        if (moving)
         {
-            if (delta.x > 0.001f)      body.flipX = false;
-            else if (delta.x < -0.001f) body.flipX = true;
+            if (smoothSpeed < exitWalk) moving = false;
+        }
+        else
+        {
+            if (smoothSpeed > enterWalk) moving = true;
         }
 
-        lastPos = now;
+        lastDeltaX = delta.x;
+        lastPos    = now;
+    }
+
+    void Update()
+    {
+        // Animator parametresini damping ile besle (blend tree’yi pürüzsüz sürer)
+        anim.SetFloat(SpeedHash, moving ? smoothSpeed : 0f, animDamp, Time.deltaTime);
+
+        // Flip (root scale'e dokunma, sadece sprite)
+        if (body)
+        {
+            if (lastDeltaX >  0.0005f) body.flipX = false;
+            if (lastDeltaX < -0.0005f) body.flipX = true;
+        }
     }
 }
