@@ -10,7 +10,10 @@ public class Weapon : MonoBehaviour
     public float bulletSpeed = 20f;
 
     [Tooltip("Okun çıkacağı an (Attack klibinde normalized time 0..1)")]
-    public float fireAtNormalized = 0.35f;   // klibin ortası gibi
+    public float fireAtNormalized = 0.35f;
+
+    [Header("Level Sistemi")]
+    public float attackSpeedMultiplier = 1.0f; // Level atladıkça bu artacak
 
     Animator anim;
     PlayerController pc;
@@ -21,19 +24,31 @@ public class Weapon : MonoBehaviour
     void Awake()
     {
         anim = GetComponentInParent<Animator>();
-        pc   = GetComponentInParent<PlayerController>();
+        pc = GetComponentInParent<PlayerController>();
     }
 
     void Update()
     {
         if (Mouse.current == null) return;
+        
+        // Sol tıka basıldıysa ve meşgul değilsek
         if (Mouse.current.leftButton.wasPressedThisFrame && !busy)
             StartCoroutine(AttackRoutine());
+    }
+
+    // --- LEVEL MANAGER'IN ÇAĞIRACAĞI FONKSİYON ---
+    public void IncreaseAttackSpeed(float amount)
+    {
+        attackSpeedMultiplier += amount;
+        Debug.Log("Saldırı Hızı Arttı! Yeni Çarpan: " + attackSpeedMultiplier);
     }
 
     IEnumerator AttackRoutine()
     {
         busy = true;
+
+        // 1. ANİMASYON HIZINI ARTIR (Level'a göre)
+        if(anim) anim.speed = attackSpeedMultiplier;
 
         // Attack'ı tetikle
         anim.ResetTrigger(AttackTrig);
@@ -45,6 +60,7 @@ public class Weapon : MonoBehaviour
         if (pc) pc.canMove = false;
 
         bool shot = false;
+        
         // Attack state'inde kaldığın sürece döngü
         while (InAttack())
         {
@@ -60,6 +76,9 @@ public class Weapon : MonoBehaviour
             yield return null;
         }
 
+        // 2. ANİMASYON HIZINI NORMALE DÖNDÜR (Yürürken hızlı yürümesin diye)
+        if(anim) anim.speed = 1f;
+
         // Attack bitti → Locomotion'a döndü
         if (pc) pc.canMove = true;
         busy = false;
@@ -68,8 +87,8 @@ public class Weapon : MonoBehaviour
     bool InAttack()
     {
         if (!anim) return false;
-        // Tag = "Attack" olan state'te misin? (transition dahil)
-        var cur  = anim.GetCurrentAnimatorStateInfo(0);
+        
+        var cur = anim.GetCurrentAnimatorStateInfo(0);
         if (anim.IsInTransition(0))
         {
             var next = anim.GetNextAnimatorStateInfo(0);
@@ -86,7 +105,7 @@ public class Weapon : MonoBehaviour
         var rb = go.GetComponent<Rigidbody2D>();
         if (rb)
         {
-            // Projene göre linearVelocity yoksa rb.velocity kullan
+            // Unity sürümüne göre linearVelocity veya velocity
             rb.linearVelocity = ((Vector2)firePoint.right).normalized * bulletSpeed;
         }
     }

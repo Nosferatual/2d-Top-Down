@@ -2,25 +2,38 @@ using UnityEngine;
 
 public class LevelManager : MonoBehaviour
 {
-    public static LevelManager Instance; // Diğer scriptlerden ulaşmak için
+    public static LevelManager Instance;
 
     [Header("Level Ayarları")]
     public int seviye = 1;
     public float mevcutTecrube = 0f;
     public float seviyeIcinGerekenXP = 100f;
 
+    [Header("Ödül Ayarları")]
+    public float saldiriHiziBonusu = 0.2f; // Her levelde %20 hızlansın
+
+    // Silah scriptine ulaşmak için referans
+    private Weapon playerWeapon;
+
     void Awake()
     {
-        // Singleton yapısı: Her yerden LevelManager.Instance diyerek ulaşabilirsin
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+    }
+
+    void Start()
+    {
+        // Sahnedeki oyuncunun silahını (Weapon scriptini) bul
+        playerWeapon = FindAnyObjectByType<Weapon>();
+        
+        if(playerWeapon == null)
+            Debug.LogWarning("LevelManager: Weapon scripti sahnede bulunamadı!");
     }
 
     public void TecrubeKazan(float miktar)
     {
         mevcutTecrube += miktar;
-        // Debug.Log ile test et
-        Debug.Log($"XP Kazanıldı! Toplam: {mevcutTecrube}/{seviyeIcinGerekenXP}");
+        // Debug.Log($"XP Kazanıldı! Toplam: {mevcutTecrube}/{seviyeIcinGerekenXP}");
 
         if (mevcutTecrube >= seviyeIcinGerekenXP)
         {
@@ -35,8 +48,11 @@ public class LevelManager : MonoBehaviour
         seviyeIcinGerekenXP *= 1.2f; // Her levelda zorlaşsın
 
         Debug.Log($"<color=green>TEBRİKLER! LEVEL {seviye} OLDUN!</color>");
-        
-        // Burada ilerde "Ödül Paneli Açma" fonksiyonunu çağıracağız
-        // Ornek: UIManager.Instance.OdulEkraniniAc();
+
+        // --- SİLAHI HIZLANDIRMA KODU ---
+        if (playerWeapon != null)
+        {
+            playerWeapon.IncreaseAttackSpeed(saldiriHiziBonusu);
+        }
     }
 }
