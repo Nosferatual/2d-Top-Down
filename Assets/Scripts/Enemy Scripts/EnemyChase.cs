@@ -15,6 +15,9 @@ public class EnemyChase : MonoBehaviour
     [Header("Geri Tepme Ayarları")]
     public float knockbackForce = 5f;
     public float stunDuration = 0.2f;
+    
+    [Header("Saldırı Zamanlaması")]
+    public float damageDelay = 0.4f; // Animasyonun tam vurduğu anı (saniye) buraya yazacağız
 
     Rigidbody2D rb;
     Animator animator; 
@@ -65,18 +68,30 @@ public class EnemyChase : MonoBehaviour
     {
         canAttack = false;
         
-        // Animasyonu tetikle
+        // 1. Düşmanı durdur (Saldırırken kaymasın)
+        rb.linearVelocity = Vector2.zero; 
+
+        // 2. Animasyonu başlat
         if (animator) animator.SetTrigger("Attack");
 
-        // Hasar ver (Burayı animasyonun tam vurduğu ana denk getirmek daha iyidir ama şimdilik direkt vuralım)
-        PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
-        if (playerHealth != null)
+        // 3. KRİTİK NOKTA: Bekle! (Animasyonun vurma karesine gelmesini bekle)
+        yield return new WaitForSeconds(damageDelay);
+
+        // 4. Hala menzilde miyiz? (Oyuncu kaçmış olabilir)
+        float distanceInfo = Vector2.Distance(transform.position, target.position);
+        if (distanceInfo <= attackRange + 0.5f) // Biraz tolerans tanıdık (+0.5f)
         {
-            playerHealth.TakeDamage(damageAmount);
+            PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(damageAmount);
+            }
         }
 
-        // Saldırı bekleme süresi
-        yield return new WaitForSeconds(attackCooldown);
+        // 5. Saldırı bekleme süresinin geri kalanı
+        // (Toplam cooldown - harcanan delay kadar bekle)
+        yield return new WaitForSeconds(attackCooldown - damageDelay);
+        
         canAttack = true;
     }
 

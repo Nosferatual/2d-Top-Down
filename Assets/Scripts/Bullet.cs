@@ -29,24 +29,27 @@ public class Bullet : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter2D(Collider2D other)
-{
-    if (hit) return; // varsa mevcut guard
-
-    var enemy = other.GetComponentInParent<EnemyHit>();
-    if (enemy)
+    void OnTriggerEnter2D(Collider2D hitInfo)
     {
-        hit = true;               // varsa guard değişkenini set et
-        enemy.Kill();             // anında öldür
-        Destroy(gameObject);      // mermiyi sil
-        return;
+        // Eğer vurduğumuz şey Düşman ise
+        EnemyHit enemy = hitInfo.GetComponent<EnemyHit>();
+        if (enemy != null)
+        {
+            // Merminin gidiş yönünü hesapla (Geri tepme için lazım)
+            Vector2 pushDirection = (enemy.transform.position - transform.position).normalized;
+            
+            // Düşmana hasar ver (Örn: 10 hasar) ve itme yönünü gönder
+            enemy.TakeDamage(10, pushDirection); 
+            
+            // Mermiyi yok et
+            Destroy(gameObject);
+        }
+        
+        // Duvara çarparsa da yok olsun (Tag kontrolü yapabilirsin)
+        if (hitInfo.CompareTag("Wall"))
+        {
+            Destroy(gameObject);
+        }
     }
-
-    if (other.gameObject.layer == LayerMask.NameToLayer("Obstacle") || other.CompareTag("Wall"))
-    {
-        hit = true;
-        Destroy(gameObject);
-    }
-}
 
 }

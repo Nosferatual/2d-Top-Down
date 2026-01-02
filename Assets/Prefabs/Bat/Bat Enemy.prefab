@@ -183,11 +183,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyChase
   target: {fileID: 0}
   moveSpeed: 2.5
-  attackRange: 1.5
+  attackRange: 1
   attackCooldown: 1.5
   damageAmount: 10
-  knockbackForce: 9
-  stunDuration: 0.2
+  knockbackForce: 6
+  stunDuration: 0.4
+  damageDelay: 0.4
 --- !u!114 &-8116167157247625803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -200,8 +201,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 951e763e748a6b14aa6fe9dbe92b2e34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHit
-  xpMiktari: 10
+  maxHealth: 10
+  currentHealth: 0
   deathVfx: {fileID: 6132360278523053856, guid: 9cffb895c32e34347892f54748468fb7, type: 3}
+  effectDuration: 2
+  knockbackForce: 10
+  stunTime: 0.3
 --- !u!114 &1799576343550540259
 MonoBehaviour:
   m_ObjectHideFlags: 0

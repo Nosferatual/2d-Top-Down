@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.UI; // Slider için
+using TMPro;          // TextMeshPro yazıları için (BUNU UNUTMA!)
 
 public class LevelManager : MonoBehaviour
 {
@@ -9,10 +11,15 @@ public class LevelManager : MonoBehaviour
     public float mevcutTecrube = 0f;
     public float seviyeIcinGerekenXP = 100f;
 
-    [Header("Ödül Ayarları")]
-    public float saldiriHiziBonusu = 0.2f; // Her levelde %20 hızlansın
+    [Header("UI Elemanları")]
+    public Slider xpSlider;
+    public TextMeshProUGUI xpText;    // "50 / 100" yazan yer
+    public TextMeshProUGUI levelText; // "Level 5" yazan yer
+    public TextMeshProUGUI speedText; // "Hız: 1.2x" yazan yer
 
-    // Silah scriptine ulaşmak için referans
+    [Header("Ödül Ayarları")]
+    public float saldiriHiziBonusu = 0.2f;
+
     private Weapon playerWeapon;
 
     void Awake()
@@ -23,17 +30,19 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        // Sahnedeki oyuncunun silahını (Weapon scriptini) bul
+        // Silahı bul
         playerWeapon = FindAnyObjectByType<Weapon>();
         
-        if(playerWeapon == null)
-            Debug.LogWarning("LevelManager: Weapon scripti sahnede bulunamadı!");
+        // Oyun başlayınca ekranı güncelle
+        UI_Guncelle();
     }
 
     public void TecrubeKazan(float miktar)
     {
         mevcutTecrube += miktar;
-        // Debug.Log($"XP Kazanıldı! Toplam: {mevcutTecrube}/{seviyeIcinGerekenXP}");
+        
+        // XP gelince güncelle
+        UI_Guncelle();
 
         if (mevcutTecrube >= seviyeIcinGerekenXP)
         {
@@ -45,14 +54,48 @@ public class LevelManager : MonoBehaviour
     {
         mevcutTecrube -= seviyeIcinGerekenXP;
         seviye++;
-        seviyeIcinGerekenXP *= 1.2f; // Her levelda zorlaşsın
+        seviyeIcinGerekenXP *= 1.2f; // Bir sonraki level zorlaşsın
 
-        Debug.Log($"<color=green>TEBRİKLER! LEVEL {seviye} OLDUN!</color>");
+        Debug.Log($"TEBRİKLER! LEVEL {seviye} OLDUN!");
 
-        // --- SİLAHI HIZLANDIRMA KODU ---
+        // Silahı hızlandır
         if (playerWeapon != null)
         {
             playerWeapon.IncreaseAttackSpeed(saldiriHiziBonusu);
+        }
+
+        // Level atlayınca her şeyi güncelle
+        UI_Guncelle();
+    }
+
+    // Tüm UI işlemlerini tek yerde yapıyoruz, kafa karışıklığı olmasın
+    void UI_Guncelle()
+    {
+        // 1. Slider Güncelle
+        if (xpSlider != null)
+        {
+            xpSlider.maxValue = seviyeIcinGerekenXP;
+            xpSlider.value = mevcutTecrube;
+        }
+
+        // 2. XP Yazısını Güncelle (Örn: "40 / 120")
+        // "F0" virgülden sonra sayı gösterme demek (tam sayı)
+        if (xpText != null)
+        {
+            xpText.text = $"{mevcutTecrube:F0} / {seviyeIcinGerekenXP:F0}";
+        }
+
+        // 3. Level Yazısını Güncelle
+        if (levelText != null)
+        {
+            levelText.text = $"LEVEL {seviye}";
+        }
+
+        // 4. Hız Çarpanını Göster (Silahın üzerinden okuyoruz)
+        if (speedText != null && playerWeapon != null)
+        {
+            // "F1" virgülden sonra tek basamak göster demek (1.2x gibi)
+            speedText.text = $"HIZ: {playerWeapon.attackSpeedMultiplier:F1}x";
         }
     }
 }
