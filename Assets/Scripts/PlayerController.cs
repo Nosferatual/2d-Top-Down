@@ -9,19 +9,32 @@ public class PlayerController : MonoBehaviour
 
     Rigidbody2D rb;
     InputAction moveAction;
-    Animator animator; // Walk bool'ünü PlayerAnimation set ediyor ama istersen burada da kullanabilirsin
+    Animator animator; 
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
 
-        moveAction = new InputAction(type: InputActionType.Value, binding: "");
-        var c = moveAction.AddCompositeBinding("2DVector");
-        c.With("Up", "<Keyboard>/w");           c.With("Down", "<Keyboard>/s");
-        c.With("Left", "<Keyboard>/a");         c.With("Right", "<Keyboard>/d");
-        c.With("Up", "<Keyboard>/upArrow");     c.With("Down", "<Keyboard>/downArrow");
-        c.With("Left", "<Keyboard>/leftArrow"); c.With("Right", "<Keyboard>/rightArrow");
+        // Aksiyonu oluştur
+        moveAction = new InputAction(type: InputActionType.Value, expectedControlType: "Vector2");
+        
+        // Klavye WASD Bağlantısı
+        moveAction.AddCompositeBinding("2DVector")
+            .With("Up", "<Keyboard>/w")
+            .With("Down", "<Keyboard>/s")
+            .With("Left", "<Keyboard>/a")
+            .With("Right", "<Keyboard>/d");
+
+        // Ok Tuşları Bağlantısı
+        moveAction.AddCompositeBinding("2DVector")
+            .With("Up", "<Keyboard>/upArrow")
+            .With("Down", "<Keyboard>/downArrow")
+            .With("Left", "<Keyboard>/leftArrow")
+            .With("Right", "<Keyboard>/rightArrow");
+
+        // --- MOBİL İÇİN YENİ EKLENEN KISIM (Sanal Joystick) ---
+        moveAction.AddBinding("<Gamepad>/leftStick");
     }
 
     void OnEnable()  => moveAction.Enable();
@@ -31,11 +44,17 @@ public class PlayerController : MonoBehaviour
     {
         if (!canMove)
         {
-            rb.linearVelocity = Vector2.zero; // sürümün destekliyorsa linearVelocity
+            rb.linearVelocity = Vector2.zero; // Unity sürümün eskiyse 'velocity' yapabilirsin
             return;
         }
 
-        Vector2 input = moveAction.ReadValue<Vector2>().normalized;
+        // Girdiyi oku
+        Vector2 input = moveAction.ReadValue<Vector2>();
+        
+        // Çapraz gidişlerde hızlanmayı önlemek için normalize et
+        if (input.sqrMagnitude > 1f) input.Normalize();
+
+        // Karakteri hareket ettir
         rb.MovePosition(rb.position + input * moveSpeed * Time.fixedDeltaTime);
     }
 }

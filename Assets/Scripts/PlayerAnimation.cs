@@ -28,16 +28,13 @@ public class PlayerAnimation : MonoBehaviour
 
     void FixedUpdate()
     {
-        // MovePosition kullanıyorsan hız ölçümü buradan yapılmalı
         Vector2 now   = rb ? rb.position : (Vector2)transform.position;
         Vector2 delta = now - lastPos;
 
         float rawSpeed = delta.magnitude / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
-        // Üstel alçak geçiren filtre (low-pass)
         float a = 1f - Mathf.Exp(-smoothHz * Time.fixedDeltaTime);
         smoothSpeed = Mathf.Lerp(smoothSpeed, rawSpeed, a);
 
-        // Histerezis: çift eşik ile kararsız bölgeyi yok et
         if (moving)
         {
             if (smoothSpeed < exitWalk) moving = false;
@@ -53,14 +50,30 @@ public class PlayerAnimation : MonoBehaviour
 
     void Update()
     {
-        // Animator parametresini damping ile besle (blend tree’yi pürüzsüz sürer)
         anim.SetFloat(SpeedHash, moving ? smoothSpeed : 0f, animDamp, Time.deltaTime);
 
-        // Flip (root scale'e dokunma, sadece sprite)
+        // --- YENİ EKLENEN KISIM: EĞER SALDIRIYORSAK (ATTACK) DÖNMEYE KARIŞMA ---
+        if (InAttack()) return;
+
+        // Flip (Sadece yürürken çalışır)
         if (body)
         {
             if (lastDeltaX >  0.0005f) body.flipX = false;
             if (lastDeltaX < -0.0005f) body.flipX = true;
         }
+    }
+
+    // Saldırı (Attack) durumunda olup olmadığımızı kontrol eder
+    bool InAttack()
+    {
+        if (!anim) return false;
+        
+        var cur = anim.GetCurrentAnimatorStateInfo(0);
+        if (anim.IsInTransition(0))
+        {
+            var next = anim.GetNextAnimatorStateInfo(0);
+            return cur.IsTag("Attack") || next.IsTag("Attack");
+        }
+        return cur.IsTag("Attack");
     }
 }

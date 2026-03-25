@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class WeaponPivotAim : MonoBehaviour
 {
@@ -9,36 +8,72 @@ public class WeaponPivotAim : MonoBehaviour
     [Tooltip("Silah sprite'ının varsayılanı sağa bakıyorsa true.")]
     public bool spriteFacesRight = true;
 
-    Camera cam;
-
-    void Awake() { cam = Camera.main; }
+    [Header("Auto-Aim Ayarları (Mobil)")]
+    public float targetRange = 8f;   // Düşman arama menzili (Büyü asasının menzili)
+    public LayerMask enemyLayer;     // Düşmanların olduğu Katman (Örn: "Enemy" layer'ı)
+    
+    // Karakterin ne tarafa döneceğini PlayerAim scriptine bildirmek için public yaptık
+    public Vector2 CurrentAimDirection { get; private set; } = Vector2.right;
 
     void LateUpdate()
     {
-        if (!player || !weaponChild || !cam || Mouse.current == null) return;
+        if (!player || !weaponChild) return;
 
-        // Pivot her kare player merkezinde dursun (child değilse emniyet)
+        // Pivot her kare player merkezinde dursun
         transform.position = player.position;
 
-        // Mouse -> world
-        Vector2 mp = Mouse.current.position.ReadValue();
-        float z = Mathf.Abs(cam.transform.position.z - transform.position.z);
-        Vector3 mWorld = cam.ScreenToWorldPoint(new Vector3(mp.x, mp.y, z));
-        mWorld.z = 0f;
+        // Menzildeki en yakın düşmanı bul
+        Transform closestEnemy = FindClosestEnemy();
 
-        // Pivotu mouse'a döndür (firePoint.right bu yöne bakacak)
-        Vector2 dir = (mWorld - transform.position);
-        if (dir.sqrMagnitude < 1e-6f) return;
-        transform.right = dir.normalized;
+        if (closestEnemy != null)
+        {
+            // Düşman varsa vektörü ona doğru çevir
+            CurrentAimDirection = (closestEnemy.position - transform.position).normalized;
+        }
+        // Eğer menzilde düşman yoksa, silah en son baktığı yönde sabit kalır
 
-        // Yarı-düzleme göre sadece görseli flip'le (firePoint etkilenmez)
-        bool leftSide = dir.x < 0f;
+        // Pivotu hedefe döndür
+        transform.right = CurrentAimDirection;
+
+        // Yarı-düzleme göre sadece görseli flip'le (Silahın ters dönmemesi için)
+        bool leftSide = CurrentAimDirection.x < 0f;
         float yFlip = leftSide ? -1f : 1f;
-        if (!spriteFacesRight) yFlip *= -1f;      // sprite defaultu sola ise tersle
+        if (!spriteFacesRight) yFlip *= -1f;      
+        
         weaponChild.localScale = new Vector3(1f, yFlip, 1f);
 
         // Elde duruş ofseti (flipte X ters döner)
         weaponChild.localPosition = new Vector3(leftSide ? -handLocalOffset.x : handLocalOffset.x,
                                                 handLocalOffset.y, 0f);
+    }
+
+    // Etraftaki düşmanları tarayıp en yakın olanı döndüren matematiksel fonksiyon
+    Transform FindClosestEnemy()
+    {
+        // Karakterin etrafında targetRange yarıçapında görünmez bir çember oluştur ve enemyLayer'daki objeleri bul
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, targetRange, enemyLayer);
+        
+        Transform closest = null;
+        float minDistance = Mathf.Infinity;
+
+        foreach (Collider2D enemy in enemies)
+        {
+            // Bulunan her düşmanın karaktere olan mesafesini ölç
+            float distance = Vector2.Distance(transform.position, enemy.transform.position);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closest = enemy.transform;
+            }
+        }
+
+        return closest;
+    }
+
+    // Teze eklenecek güzel bir detay: Unity Editor'de menzili kırmızı bir çember ile gösterir
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, targetRange);
     }
 }
