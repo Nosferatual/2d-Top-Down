@@ -165,7 +165,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc8ca60ffbe4903419dd5371420300ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Weapon
-  bulletPrefab: {fileID: 8319127980391189820, guid: 67a57c07a15dcee4b98a99e5571a3a52, type: 3}
+  bulletPrefab: {fileID: 893019552216504030, guid: 3f888d7cad527c547aeb6e374cd078b4, type: 3}
   firePoint: {fileID: 512873333}
   bulletSpeed: 7
   fireAtNormalized: 0.1
@@ -1370,7 +1370,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 3576351608195186407, guid: f3d42481f03c79646b2a1330cad55dfd, type: 3}
+  m_Sprite: {fileID: -2313452468405425361, guid: f9213684960da604bafdd59e48d358d0, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
