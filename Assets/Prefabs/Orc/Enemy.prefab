@@ -33,7 +33,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.2848, y: 2.7178, z: 0}
-  m_LocalScale: {x: 1.2, y: 1.2, z: 1.2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -67,6 +67,7 @@ Rigidbody2D:
   m_Constraints: 4
 --- !u!212 &8129798330542177245
 SpriteRenderer:
+  serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -112,6 +113,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_Sprite: {fileID: 7559258052010542393, guid: 20e3c8d0a23ecef4e965f5975e0f9d71, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -121,7 +123,6 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!61 &4069888677253999628
 BoxCollider2D:
@@ -186,9 +187,12 @@ MonoBehaviour:
   attackRange: 1.5
   attackCooldown: 1.5
   damageAmount: 5
-  knockbackForce: 5
-  stunDuration: 0.5
   damageDelay: 0.4
+  separationRadius: 0.5
+  separationForce: 5
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 256
 --- !u!114 &-484895213488555444
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,6 +211,8 @@ MonoBehaviour:
   effectDuration: 1
   knockbackForce: 10
   stunTime: 0.3
+  flashDuration: 0.08
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!95 &-460912287477944296
 Animator:
   serializedVersion: 7

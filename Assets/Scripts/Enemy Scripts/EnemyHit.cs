@@ -7,73 +7,112 @@ public class EnemyHit : MonoBehaviour
     public int maxHealth = 30;
     public int currentHealth;
 
-    [Header("Efektler")]
-    public GameObject deathVfx; // İŞTE SENİN İSTEDİĞİN KISIM BURASI
-    public float effectDuration = 1f; // Efekt kaç saniye sahnede kalsın?
+    [Header("Ölüm Efekti")]
+    public GameObject deathVfx;
+    public float effectDuration = 1f;
 
     [Header("Vurulma Fizik")]
-    public float knockbackForce = 10f; 
-    public float stunTime = 0.3f;      
-    
-    private Rigidbody2D rb;
-    private EnemyChase enemyChaseScript;
+    public float knockbackForce = 3f;
+    public float stunTime = 0.12f;
+
+    [Header("Vurulma Flash")]
+    public float flashDuration = 0.1f;
+    public Color hitColor = Color.red;
+
+    Rigidbody2D rb;
+    EnemyChase chaseScript;
+    SpriteRenderer[] renderers;
+    Color[] originalColors;
+    bool isDead = false;
 
     void Start()
     {
         currentHealth = maxHealth;
         rb = GetComponent<Rigidbody2D>();
-        enemyChaseScript = GetComponent<EnemyChase>();
+        chaseScript = GetComponent<EnemyChase>();
+
+        renderers = GetComponentsInChildren<SpriteRenderer>();
+        originalColors = new Color[renderers.Length];
+        for (int i = 0; i < renderers.Length; i++)
+            originalColors[i] = renderers[i].color;
     }
 
     public void TakeDamage(int damage, Vector2 hitDirection)
     {
+        if (isDead) return;
+
         currentHealth -= damage;
 
-        // Vurulunca Geri Tepme (Knockback)
-        if(this.gameObject.activeInHierarchy) 
-        {
+        if (gameObject.activeInHierarchy)
             StartCoroutine(KnockbackRoutine(hitDirection));
-        }
 
-        // Ölüm Kontrolü
         if (currentHealth <= 0)
         {
-            Die();
+            isDead = true;
+            // Flash ÖNCE çalışsın, SONRA öl — son canda da kırmızı görsün
+            StartCoroutine(FlashThenDie());
+        }
+        else
+        {
+            StartCoroutine(HitFlash());
         }
     }
 
     IEnumerator KnockbackRoutine(Vector2 dir)
     {
-        if (enemyChaseScript) enemyChaseScript.enabled = false;
-
-        rb.linearVelocity = Vector2.zero; // Unity 2023 öncesi ise 'velocity' yaz
-        rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
-
-        yield return new WaitForSeconds(stunTime);
-
         rb.linearVelocity = Vector2.zero;
-        if (enemyChaseScript) enemyChaseScript.enabled = true;
+        rb.AddForce(dir * knockbackForce, ForceMode2D.Impulse);
+        yield return new WaitForSeconds(stunTime);
+        if (!isDead) rb.linearVelocity = Vector2.zero;
+    }
+
+    IEnumerator HitFlash()
+    {
+        SetColor(hitColor);
+        yield return new WaitForSeconds(flashDuration);
+        ResetColor();
+    }
+
+    IEnumerator FlashThenDie()
+    {
+        // Collider kapat — çift hasar/ölüm olmasın
+        var col = GetComponent<Collider2D>();
+        if (col) col.enabled = false;
+
+        if (chaseScript) chaseScript.enabled = false;
+        if (rb) rb.linearVelocity = Vector2.zero;
+
+        // Flash — son canda da görünsün
+        SetColor(hitColor);
+        yield return new WaitForSeconds(flashDuration * 2f);
+        ResetColor();
+
+        Die();
+    }
+
+    void SetColor(Color c)
+    {
+        for (int i = 0; i < renderers.Length; i++)
+            if (renderers[i]) renderers[i].color = c;
+    }
+
+    void ResetColor()
+    {
+        for (int i = 0; i < renderers.Length; i++)
+            if (renderers[i]) renderers[i].color = originalColors[i];
     }
 
     void Die()
     {
-        // 1. Level Sistemine XP Gönder
-        if (LevelManager.Instance != null) 
-        {
-            LevelManager.Instance.TecrubeKazan(20); 
-        }
+        if (LevelManager.Instance != null)
+            LevelManager.Instance.TecrubeKazan(20);
 
-        // 2. DEAD FX (ÖLÜM EFEKTİ) OLUŞTURMA
         if (deathVfx != null)
         {
-            // Düşmanın olduğu yerde efekti oluştur
-            GameObject effect = Instantiate(deathVfx, transform.position, Quaternion.identity);
-            
-            // Efekti belirli bir süre sonra yok et (sahne çöp dolmasın)
-            Destroy(effect, effectDuration);
+            GameObject fx = Instantiate(deathVfx, transform.position, Quaternion.identity);
+            Destroy(fx, effectDuration);
         }
 
-        // 3. Düşmanı Yok Et
-        Destroy(gameObject); 
+        Destroy(gameObject);
     }
 }
