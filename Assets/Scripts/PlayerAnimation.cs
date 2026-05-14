@@ -2,27 +2,29 @@ using UnityEngine;
 
 public class PlayerAnimation : MonoBehaviour
 {
-    [SerializeField] SpriteRenderer body;      // boşsa otomatik bulunur
-    [SerializeField] float enterWalk = 0.20f;  // yürüme için giriş eşiği
-    [SerializeField] float exitWalk  = 0.10f;  // yürümeden çıkış eşiği
-    [SerializeField] float animDamp  = 0.08f;  // Animator.SetFloat damping (s)
-    [SerializeField] float smoothHz  = 10f;    // hız yumuşatma katsayısı
+    [Header("SPUM Karakteri")]
+    [Tooltip("Hiyerarşideki Unit1 (veya SPUM) objesini buraya sürükle")]
+    public Transform visualBody; 
 
-    static readonly int SpeedHash = Animator.StringToHash("Speed");
+    [Header("Yön Ayarı")]
+    public bool isSpumFacingLeft = true; 
 
     Animator    anim;
     Rigidbody2D rb;
 
     Vector2 lastPos;
-    float   smoothSpeed;   // yumuşatılmış hız
     bool    moving;
-    float   lastDeltaX;    // flip için son frame yatay hareketi
+    float   lastDeltaX;
+    Vector3 originalScale; 
 
     void Awake()
     {
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
         rb   = GetComponent<Rigidbody2D>();
-        if (!body) body = GetComponentInChildren<SpriteRenderer>();
+        
+        if (visualBody != null) originalScale = visualBody.localScale;
+        else originalScale = Vector3.one;
+        
         lastPos = rb ? rb.position : (Vector2)transform.position;
     }
 
@@ -31,43 +33,48 @@ public class PlayerAnimation : MonoBehaviour
         Vector2 now   = rb ? rb.position : (Vector2)transform.position;
         Vector2 delta = now - lastPos;
 
+        // ANINDA TEPKİ: Yumuşatmayı (Smooth) sildik, direkt hıza bakıyoruz.
         float rawSpeed = delta.magnitude / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
-        float a = 1f - Mathf.Exp(-smoothHz * Time.fixedDeltaTime);
-        smoothSpeed = Mathf.Lerp(smoothSpeed, rawSpeed, a);
+        
+        // Hız 0.1'den büyükse anında koş, küçükse anında dur. (Kaymayı engeller)
+        moving = rawSpeed > 0.1f;
 
-        if (moving)
+        if (Mathf.Abs(delta.x) > 0.001f) 
         {
-            if (smoothSpeed < exitWalk) moving = false;
+            lastDeltaX = delta.x;
         }
-        else
-        {
-            if (smoothSpeed > enterWalk) moving = true;
-        }
-
-        lastDeltaX = delta.x;
-        lastPos    = now;
+        
+        lastPos = now;
     }
 
     void Update()
     {
-        anim.SetFloat(SpeedHash, moving ? smoothSpeed : 0f, animDamp, Time.deltaTime);
+        if (anim != null)
+        {
+            anim.SetBool("Run", moving);
+            anim.SetFloat("RunState", moving ? 1f : 0f);
+        }
 
-        // --- YENİ EKLENEN KISIM: EĞER SALDIRIYORSAK (ATTACK) DÖNMEYE KARIŞMA ---
         if (InAttack()) return;
 
-        // Flip (Sadece yürürken çalışır)
-        if (body)
+        if (visualBody != null)
         {
-            if (lastDeltaX >  0.0005f) body.flipX = false;
-            if (lastDeltaX < -0.0005f) body.flipX = true;
+            float absX = Mathf.Abs(originalScale.x);
+            
+            if (lastDeltaX > 0.001f) 
+            {
+                visualBody.localScale = new Vector3(isSpumFacingLeft ? -absX : absX, originalScale.y, originalScale.z);
+            }
+            else if (lastDeltaX < -0.001f) 
+            {
+                visualBody.localScale = new Vector3(isSpumFacingLeft ? absX : -absX, originalScale.y, originalScale.z);
+            }
         }
     }
 
-    // Saldırı (Attack) durumunda olup olmadığımızı kontrol eder
     bool InAttack()
     {
         if (!anim) return false;
-        
         var cur = anim.GetCurrentAnimatorStateInfo(0);
         if (anim.IsInTransition(0))
         {

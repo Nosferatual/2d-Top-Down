@@ -7,8 +7,18 @@ public class Bullet : MonoBehaviour
     public Transform gfx;
     public float angleOffset = 0f;
 
+    [Header("Çarpma Efekti")]
+    [Tooltip("Okçu için: ok yönünde ilerleyen toz/duman partikülleri")]
+    //[Tooltip("Büyücü için: ateş patlama partikülleri")]
+    public GameObject hitVfxPrefab;
+
+    [Tooltip("Efekt düşmanın üzerinde mi (true) yoksa çarpma noktasında mı (false) doğsun")]
+    public bool spawnVfxOnEnemy = true;
+
+    [Tooltip("Büyücü ise true — efekt yön almaz, her yana patlar")]
+    public bool isMageProjectile = false;
+
     Rigidbody2D rb;
-    bool hit; // aynı karede çoklu collider tetiklerine karşı
 
     void Awake() { rb = GetComponent<Rigidbody2D>(); }
 
@@ -21,7 +31,7 @@ public class Bullet : MonoBehaviour
     void LateUpdate()
     {
         if (!rb || !gfx) return;
-        var v = rb.linearVelocity; // sürümün desteklemiyorsa rb.velocity
+        var v = rb.linearVelocity;
         if (v.sqrMagnitude > 0.001f)
         {
             float ang = Mathf.Atan2(v.y, v.x) * Mathf.Rad2Deg + angleOffset;
@@ -31,25 +41,44 @@ public class Bullet : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D hitInfo)
     {
-        // Eğer vurduğumuz şey Düşman ise
         EnemyHit enemy = hitInfo.GetComponent<EnemyHit>();
         if (enemy != null)
         {
-            // Merminin gidiş yönünü hesapla (Geri tepme için lazım)
             Vector2 pushDirection = (enemy.transform.position - transform.position).normalized;
-            
-            // Düşmana hasar ver (Örn: 10 hasar) ve itme yönünü gönder
-            enemy.TakeDamage(10, pushDirection); 
-            
-            // Mermiyi yok et
+            enemy.TakeDamage((int)damage, pushDirection);
+
+            SpawnHitVfx(enemy.transform.position, pushDirection);
+
             Destroy(gameObject);
+            return;
         }
-        
-        // Duvara çarparsa da yok olsun (Tag kontrolü yapabilirsin)
+
         if (hitInfo.CompareTag("Wall"))
         {
             Destroy(gameObject);
         }
     }
 
+    void SpawnHitVfx(Vector3 enemyPos, Vector2 bulletDir)
+    {
+        if (hitVfxPrefab == null) return;
+
+        Vector3 spawnPos = spawnVfxOnEnemy ? enemyPos : transform.position;
+
+        Quaternion rot;
+        if (isMageProjectile)
+        {
+            // Büyücü: her yana patlasın — rotasyon fark etmez
+            rot = Quaternion.identity;
+        }
+        else
+        {
+            // Okçu: partiküller merminin geldiği yönde gitsin (momentum yönü)
+            float angle = Mathf.Atan2(bulletDir.y, bulletDir.x) * Mathf.Rad2Deg;
+            rot = Quaternion.Euler(0f, 0f, angle);
+        }
+
+        GameObject vfx = Instantiate(hitVfxPrefab, spawnPos, rot);
+        Destroy(vfx, 0.5f); // 0.5 saniye sonra yok ol — sahne çöp dolmasın
+    }
 }

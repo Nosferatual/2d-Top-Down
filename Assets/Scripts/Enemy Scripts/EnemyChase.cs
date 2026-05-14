@@ -4,30 +4,33 @@ using System.Collections;
 [RequireComponent(typeof(Rigidbody2D))]
 public class EnemyChase : MonoBehaviour
 {
-    public Transform target;          
-    public float moveSpeed = 2.5f;
-    
+    public Transform target;
+
+    [Header("Hareket")]
+    public float moveSpeed = 2f;
+
     [Header("Saldırı Ayarları")]
-    public float attackRange = 1.5f;   // Saldırı mesafesi
-    public float attackCooldown = 1.5f; // Kaç saniyede bir vursun
+    public float attackRange = 1.2f;
+    public float attackCooldown = 1.5f;
     public int damageAmount = 10;
-    
-    [Header("Geri Tepme Ayarları")]
-    public float knockbackForce = 5f;
-    public float stunDuration = 0.2f;
-    
-    [Header("Saldırı Zamanlaması")]
-    public float damageDelay = 0.4f; // Animasyonun tam vurduğu anı (saniye) buraya yazacağız
+    public float damageDelay = 0.3f;
+
+    [Header("Düşman Ayrışma")]
+    [Tooltip("Bu değeri düşmanın collider yarıçapının 2 katı yap. Örn collider radius 0.4 ise bunu 0.8 yap")]
+    public float separationRadius = 0.8f;
+    [Tooltip("3-5 arası dene")]
+    public float separationForce = 4f;
+    public LayerMask enemyLayer;
 
     Rigidbody2D rb;
-    Animator animator; 
-    bool isKnockedBack = false;
-    bool canAttack = true; // Saldırabilir mi?
+    Animator animator;
+    PlayerHealth playerHealth;
+    bool canAttack = true;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        animator = GetComponentInChildren<Animator>(); 
+        animator = GetComponentInChildren<Animator>();
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
     }
@@ -37,84 +40,93 @@ public class EnemyChase : MonoBehaviour
         if (!target)
         {
             GameObject p = GameObject.FindGameObjectWithTag("Player");
-            if (p) target = p.transform;
+            if (p)
+            {
+                target = p.transform;
+                playerHealth = p.GetComponentInParent<PlayerHealth>();
+                if (playerHealth == null) playerHealth = p.GetComponentInChildren<PlayerHealth>();
+                if (playerHealth == null) playerHealth = FindAnyObjectByType<PlayerHealth>();
+            }
         }
     }
 
     void FixedUpdate()
     {
-        if (!target || isKnockedBack) return;
+        if (!target) return;
 
-        // Mesafeyi ölç
         float distance = Vector2.Distance(transform.position, target.position);
+
+        // Separation her durumda çalışsın — saldırı sırasında da
+        Vector2 separation = GetSeparationVector();
 
         if (distance > attackRange)
         {
-            // Uzaksak kovala
-            Vector2 direction = (target.position - transform.position).normalized;
-            rb.MovePosition(rb.position + direction * moveSpeed * Time.fixedDeltaTime);
+            Vector2 toPlayer = (target.position - transform.position).normalized;
+            // Separation'ı direkt velocity olarak uygula — MovePosition değil
+            Vector2 moveDir = toPlayer * moveSpeed + separation;
+            rb.linearVelocity = moveDir;
         }
         else
         {
-            // Yakınsak ve bekleme süresi bittiyse SALDIR
+            // Menzilde — sadece separation uygula, player'a doğru gitme
+            rb.linearVelocity = separation * 0.5f;
             if (canAttack)
-            {
                 StartCoroutine(AttackRoutine());
-            }
         }
+    }
+
+    Vector2 GetSeparationVector()
+    {
+        Collider2D[] neighbors = Physics2D.OverlapCircleAll(
+            transform.position, separationRadius, enemyLayer);
+
+        Vector2 sep = Vector2.zero;
+        int count = 0;
+
+        foreach (var col in neighbors)
+        {
+            if (col.gameObject == gameObject) continue;
+
+            Vector2 away = (Vector2)(transform.position - col.transform.position);
+            float dist = away.magnitude;
+
+            if (dist < 0.01f)
+            {
+                // Tam üst üste gelmiş — rastgele yönde it
+                away = Random.insideUnitCircle.normalized;
+                dist = 0.01f;
+            }
+
+            // Ne kadar yakınsa o kadar kuvvetli it
+            float strength = 1f - (dist / separationRadius);
+            sep += away.normalized * strength;
+            count++;
+        }
+
+        if (count > 0) sep /= count;
+        return sep * separationForce;
     }
 
     IEnumerator AttackRoutine()
     {
         canAttack = false;
-        
-        // 1. Düşmanı durdur (Saldırırken kaymasın)
-        rb.linearVelocity = Vector2.zero; 
 
-        // 2. Animasyonu başlat
         if (animator) animator.SetTrigger("Attack");
 
-        // 3. KRİTİK NOKTA: Bekle! (Animasyonun vurma karesine gelmesini bekle)
         yield return new WaitForSeconds(damageDelay);
 
-        // 4. Hala menzilde miyiz? (Oyuncu kaçmış olabilir)
-        float distanceInfo = Vector2.Distance(transform.position, target.position);
-        if (distanceInfo <= attackRange + 0.5f) // Biraz tolerans tanıdık (+0.5f)
+        if (target && Vector2.Distance(transform.position, target.position) <= attackRange + 0.4f)
         {
-            PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
+            if (playerHealth == null)
             {
-                playerHealth.TakeDamage(damageAmount);
+                playerHealth = target.GetComponentInParent<PlayerHealth>();
+                if (playerHealth == null) playerHealth = FindAnyObjectByType<PlayerHealth>();
             }
+            if (playerHealth != null)
+                playerHealth.TakeDamage(damageAmount);
         }
 
-        // 5. Saldırı bekleme süresinin geri kalanı
-        // (Toplam cooldown - harcanan delay kadar bekle)
         yield return new WaitForSeconds(attackCooldown - damageDelay);
-        
         canAttack = true;
-    }
-
-    // --- Burası senin eski Knockback kodun, aynen kalıyor ---
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Player"))
-        {
-             // Çarpınca da ufak itişme olsun istersen burası kalabilir
-             // Ama saldırı animasyonu eklediğimiz için genelde çarpışma hasarını kapatırız.
-             // Şimdilik sadece Knockback kalsın, hasarı yukarıdaki AttackRoutine veriyor.
-             
-             Vector2 knockbackDir = (transform.position - collision.transform.position).normalized;
-             StartCoroutine(KnockbackRoutine(knockbackDir));
-        }
-    }
-
-    IEnumerator KnockbackRoutine(Vector2 direction)
-    {
-        isKnockedBack = true;
-        rb.AddForce(direction * knockbackForce, ForceMode2D.Impulse);
-        yield return new WaitForSeconds(stunDuration);
-        rb.linearVelocity = Vector2.zero; 
-        isKnockedBack = false;
     }
 }
