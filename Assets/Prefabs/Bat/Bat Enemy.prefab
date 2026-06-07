@@ -188,7 +188,7 @@ MonoBehaviour:
   attackCooldown: 1.5
   damageAmount: 10
   damageDelay: 0.4
-  separationRadius: 0.5
+  separationRadius: 1
   separationForce: 5
   enemyLayer:
     serializedVersion: 2

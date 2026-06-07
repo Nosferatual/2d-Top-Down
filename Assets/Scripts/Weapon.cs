@@ -12,14 +12,17 @@ public class Weapon : MonoBehaviour
     [Tooltip("Büyünün çıkacağı an (Attack klibinde normalized time 0..1)")]
     public float fireAtNormalized = 0.01f;
 
+    [Header("Cast Efekti")]
+    public GameObject castVfxPrefab; // Inspector'dan MageCastVFX prefabını sürükle
+
     [Header("Auto-Aim (Otomatik Hedefleme)")]
-    public float targetRange = 10f;   // Düşman arama menzili
-    public LayerMask enemyLayer;      // Düşmanların olduğu katman
+    public float targetRange = 10f;
+    public LayerMask enemyLayer;
 
     [Header("Level Sistemi & Cooldown")]
-    public float attackSpeedMultiplier = 1.0f; // Level atladıkça bu artacak
-    public float baseAttackCooldown = 0.8f;    // Başlangıçta kaç saniyede bir vurabilsin?
-    private float nextFireTime = 0f;           // Bir sonraki atış zamanını tutar
+    public float attackSpeedMultiplier = 1.0f;
+    public float baseAttackCooldown = 0.8f;
+    private float nextFireTime = 0f;
 
     Animator anim;
     PlayerController pc;
@@ -29,20 +32,13 @@ public class Weapon : MonoBehaviour
 
     void Awake()
     {
-        // PlayerController ana objede (PlayerSUMP)
         pc = GetComponentInParent<PlayerController>();
-
-        // Animator artık SPUM objesinin içinde
         anim = transform.root.GetComponentInChildren<Animator>();
     }
 
-    // --- MOBİLDE EKRANDAKİ BUTONUN ÇAĞIRACAĞI ANA FONKSİYON ---
     public void FireAttack()
     {
-        // Level atladıkça bekleme süresini (cooldown) kısalt
         float currentCooldown = baseAttackCooldown / attackSpeedMultiplier;
-
-        // Eğer karakter meşgul değilse VE bekleme süresi dolmuşsa ateş et
         if (!busy && Time.time >= nextFireTime)
         {
             nextFireTime = Time.time + currentCooldown;
@@ -50,7 +46,6 @@ public class Weapon : MonoBehaviour
         }
     }
 
-    // --- LEVEL MANAGER'IN ÇAĞIRACAĞI FONKSİYON ---
     public void IncreaseAttackSpeed(float amount)
     {
         attackSpeedMultiplier += amount;
@@ -60,26 +55,24 @@ public class Weapon : MonoBehaviour
     IEnumerator AttackRoutine()
     {
         busy = true;
-        if(anim) anim.speed = attackSpeedMultiplier;
+        if (anim) anim.speed = attackSpeedMultiplier;
 
         anim.ResetTrigger(AttackTrig);
         anim.SetTrigger(AttackTrig);
 
-        yield return null; // Başlaması için 1 frame bekle
+        yield return null;
 
         bool shot = false;
-        float failSafe = 2f; 
-        
+        float failSafe = 2f;
+
         while (InAttack() && failSafe > 0f)
         {
             failSafe -= Time.deltaTime;
-            
-            // GEÇİŞ (Transition) anındaysa eski animasyonun zamanını almasın diye bekle
+
             if (anim.IsInTransition(0)) { yield return null; continue; }
 
             var st = anim.GetCurrentAnimatorStateInfo(0);
 
-            // Zamanı gelince mermiyi ateşle
             if (!shot && st.normalizedTime >= fireAtNormalized)
             {
                 SpawnMagicOrb();
@@ -88,16 +81,13 @@ public class Weapon : MonoBehaviour
             yield return null;
         }
 
-        // --- SİGORTA KODU ---
-        // Eğer SPUM animasyonu çok hızlı bittiyse ve süre yetmediği için mermi atamadıysa, ZORLA AT!
         if (!shot)
         {
             Debug.LogWarning("Uyarı: Animasyon süreyi kaçırdı, mermi zorla ateşlendi!");
             SpawnMagicOrb();
         }
 
-        // Sistemi sıfırla
-        if(anim) anim.speed = 1f;
+        if (anim) anim.speed = 1f;
         if (pc) pc.canMove = true;
         busy = false;
     }
@@ -105,7 +95,6 @@ public class Weapon : MonoBehaviour
     bool InAttack()
     {
         if (!anim) return false;
-        
         var cur = anim.GetCurrentAnimatorStateInfo(0);
         if (anim.IsInTransition(0))
         {
@@ -117,40 +106,39 @@ public class Weapon : MonoBehaviour
 
     void SpawnMagicOrb()
     {
-        // KONTROL: Inspector'da kutular boş mu kalmış?
         if (bulletPrefab == null) { Debug.LogError("KRİTİK HATA: Mermi Prefab'ı BOŞ!"); return; }
-        if (firePoint == null) { Debug.LogError("KRİTİK HATA: Fire Point BOŞ!"); return; }
+        if (firePoint == null)    { Debug.LogError("KRİTİK HATA: Fire Point BOŞ!"); return; }
 
-        Vector2 shootDir = Vector2.right; 
+        Vector2 shootDir = Vector2.right;
         Transform closestEnemy = FindClosestEnemy();
 
         if (closestEnemy != null)
         {
-            // Düşman varsa mermiyi ona doğru gönder
             shootDir = (closestEnemy.position - firePoint.position).normalized;
-            
-            // Karakteri zorla düşmana döndür
+
             if (shootDir.x < 0)
-                transform.parent.localScale = new Vector3(-1, 1, 1); 
+                transform.parent.localScale = new Vector3(-1, 1, 1);
             else
-                transform.parent.localScale = new Vector3(1, 1, 1);  
+                transform.parent.localScale = new Vector3(1, 1, 1);
         }
         else
         {
-            // Düşman yoksa karakterin baktığı yöne at
             shootDir = transform.parent.localScale.x < 0 ? Vector2.left : Vector2.right;
+        }
+
+        // Cast efekti — firePoint'te mavi parlama
+        if (castVfxPrefab != null)
+        {
+            GameObject vfx = Instantiate(castVfxPrefab, firePoint.position, Quaternion.identity);
+            Destroy(vfx, 0.4f);
         }
 
         var go = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
         var rbBullet = go.GetComponent<Rigidbody2D>();
-        
         if (rbBullet)
-        {
-            rbBullet.linearVelocity = shootDir * bulletSpeed; 
-        }
+            rbBullet.linearVelocity = shootDir * bulletSpeed;
     }
 
-    // Matematiksel Arama Algoritması
     Transform FindClosestEnemy()
     {
         Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, targetRange, enemyLayer);
@@ -169,7 +157,6 @@ public class Weapon : MonoBehaviour
         return closest;
     }
 
-    // Editörde menzilini mor bir çemberle gösterir
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.magenta;

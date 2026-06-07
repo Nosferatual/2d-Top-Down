@@ -16,11 +16,13 @@ public class EnemyChase : MonoBehaviour
     public float damageDelay = 0.3f;
 
     [Header("Düşman Ayrışma")]
-    [Tooltip("Bu değeri düşmanın collider yarıçapının 2 katı yap. Örn collider radius 0.4 ise bunu 0.8 yap")]
-    public float separationRadius = 0.8f;
-    [Tooltip("3-5 arası dene")]
-    public float separationForce = 4f;
+    [Tooltip("Vampire Survivors gibi yumuşak ayrışma — çok yüksek yapma")]
+    public float separationRadius = 0.7f;
+    public float separationForce = 1.5f;  // Eskiden 4f — azalttık
     public LayerMask enemyLayer;
+
+    [Header("Sprite")]
+    public SpriteRenderer spriteRenderer; // Inspector'dan ata, yoksa otomatik bulur
 
     Rigidbody2D rb;
     Animator animator;
@@ -31,6 +33,8 @@ public class EnemyChase : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
+        if (!spriteRenderer)
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
     }
@@ -55,23 +59,28 @@ public class EnemyChase : MonoBehaviour
         if (!target) return;
 
         float distance = Vector2.Distance(transform.position, target.position);
-
-        // Separation her durumda çalışsın — saldırı sırasında da
         Vector2 separation = GetSeparationVector();
 
         if (distance > attackRange)
         {
             Vector2 toPlayer = (target.position - transform.position).normalized;
-            // Separation'ı direkt velocity olarak uygula — MovePosition değil
-            Vector2 moveDir = toPlayer * moveSpeed + separation;
-            rb.linearVelocity = moveDir;
+            rb.linearVelocity = toPlayer * moveSpeed + separation;
         }
         else
         {
-            // Menzilde — sadece separation uygula, player'a doğru gitme
-            rb.linearVelocity = separation * 0.5f;
-            if (canAttack)
-                StartCoroutine(AttackRoutine());
+            // Menzilde — sadece hafif separation, player'a dönük kal
+            rb.linearVelocity = separation * 0.3f;
+            if (canAttack) StartCoroutine(AttackRoutine());
+        }
+
+        // Flip: SADECE player'ın sağda/solda olmasına göre — separation yönüne bakma
+        if (spriteRenderer && target)
+        {
+            float dirX = target.position.x - transform.position.x;
+            // Eğer sprite varsayılan olarak sağa bakıyorsa:
+            spriteRenderer.flipX = dirX < 0f;
+            // Eğer sprite varsayılan olarak sola bakıyorsa üstteki satırı şununla değiştir:
+            // spriteRenderer.flipX = dirX > 0f;
         }
     }
 
@@ -86,18 +95,9 @@ public class EnemyChase : MonoBehaviour
         foreach (var col in neighbors)
         {
             if (col.gameObject == gameObject) continue;
-
             Vector2 away = (Vector2)(transform.position - col.transform.position);
             float dist = away.magnitude;
-
-            if (dist < 0.01f)
-            {
-                // Tam üst üste gelmiş — rastgele yönde it
-                away = Random.insideUnitCircle.normalized;
-                dist = 0.01f;
-            }
-
-            // Ne kadar yakınsa o kadar kuvvetli it
+            if (dist < 0.01f) { away = Random.insideUnitCircle.normalized; dist = 0.01f; }
             float strength = 1f - (dist / separationRadius);
             sep += away.normalized * strength;
             count++;
@@ -112,6 +112,10 @@ public class EnemyChase : MonoBehaviour
         canAttack = false;
 
         if (animator) animator.SetTrigger("Attack");
+
+        // Ses hemen çal — delay bekleme
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayEnemyAttack();
 
         yield return new WaitForSeconds(damageDelay);
 

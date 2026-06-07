@@ -4,12 +4,12 @@ using UnityEngine;
 public class EnemyAnimation : MonoBehaviour
 {
     [Header("Bağlantılar")]
-    [SerializeField] SpriteRenderer body;   // boşsa otomatik bulunur
-    [SerializeField] Animator anim;         // boşsa otomatik bulunur
-    [SerializeField] Rigidbody2D rb;        // boşsa parent/root'ta aranır
+    [SerializeField] SpriteRenderer body;
+    [SerializeField] Animator anim;
+    [SerializeField] Rigidbody2D rb;
 
     [Header("Animator Param Adı")]
-    [SerializeField] string speedParam = "Speed"; // Animator'daki Float parametre adı
+    [SerializeField] string speedParam = "Speed";
 
     [Header("Ayarlama")]
     [SerializeField] float enterWalk = 0.20f;
@@ -23,7 +23,8 @@ public class EnemyAnimation : MonoBehaviour
     Vector2 lastPos;
     float   smoothSpeed;
     bool    moving;
-    float   lastDeltaX;
+
+    Transform player; // Flip için player yönü
 
     void Awake()
     {
@@ -38,9 +39,16 @@ public class EnemyAnimation : MonoBehaviour
         speedHash = Animator.StringToHash(speedParam);
         hasSpeedParam = CheckParam(anim, speedParam);
         if (!hasSpeedParam)
-            Debug.LogError($"[EnemyAnimation] Animator içinde Float parametre '{speedParam}' yok. Animator → Parameters'tan ekleyin ve Blend Tree parametresini buna ayarlayın.");
+            Debug.LogError($"[EnemyAnimation] Animator içinde Float parametre '{speedParam}' yok.");
 
         lastPos = rb ? rb.position : (Vector2)transform.position;
+    }
+
+    void Start()
+    {
+        // Player'ı bul — flip için
+        GameObject p = GameObject.FindGameObjectWithTag("Player");
+        if (p) player = p.transform;
     }
 
     static bool CheckParam(Animator a, string name)
@@ -56,19 +64,25 @@ public class EnemyAnimation : MonoBehaviour
         Vector2 delta = now - lastPos;
 
         float raw = delta.magnitude / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
-        float a = 1f - Mathf.Exp(-smoothHz * Time.fixedDeltaTime);
-        smoothSpeed = Mathf.Lerp(smoothSpeed, raw, a);
+        float alpha = 1f - Mathf.Exp(-smoothHz * Time.fixedDeltaTime);
+        smoothSpeed = Mathf.Lerp(smoothSpeed, raw, alpha);
 
         if (moving) { if (smoothSpeed < exitWalk) moving = false; }
         else        { if (smoothSpeed > enterWalk) moving = true; }
 
-        if (body)
+        // Flip: SADECE player'ın sağda/solda olmasına göre
+        // Separation veya başka bir harekete bakma
+        if (body && player)
         {
-            if (delta.x >  0.001f) body.flipX = false;
-            if (delta.x < -0.001f) body.flipX = true;
+            float dirX = player.position.x - transform.position.x;
+            if (Mathf.Abs(dirX) > 0.05f) // Çok yakınsa flip yapma — titreme önleme
+            {
+                body.flipX = dirX < 0f;
+                // Eğer sprite varsayılan sola bakıyorsa üstteki satırı şununla değiştir:
+                // body.flipX = dirX > 0f;
+            }
         }
 
-        lastDeltaX = delta.x;
         lastPos = now;
     }
 

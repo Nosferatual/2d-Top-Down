@@ -10,13 +10,16 @@ public class PlayerHealth : MonoBehaviour
     public int currentHealth;
 
     [Header("Hasar Sonrası Koruma")]
-    public float invincibilityDuration = 0.5f;  // Kaç saniye ölümsüz kalsın
-    public LayerMask enemyLayer;                 // Inspector'dan Enemy layer'ını seç
+    public float invincibilityDuration = 0.5f;
+    public int enemyLayer = 7;
 
     [Header("Flash Efekti")]
-    public Color hitColor = Color.white;         // Beyaz flash
-    public int flashCount = 3;                   // Kaç kez yanıp sönsün
+    public int flashCount = 3;
     public float flashInterval = 0.08f;
+
+    [Header("Ekran Sarsıntısı")]
+    public float shakeMagnitude = 0.15f;
+    public float shakeDuration  = 0.3f;
 
     [Header("UI")]
     public Slider healthSlider;
@@ -43,7 +46,6 @@ public class PlayerHealth : MonoBehaviour
         playerMovement = GetComponent<PlayerMovement>();
         weaponScript = GetComponentInChildren<Weapon>();
 
-        // Tüm sprite renderer'ları bul
         renderers = GetComponentsInChildren<SpriteRenderer>();
         originalColors = new Color[renderers.Length];
         for (int i = 0; i < renderers.Length; i++)
@@ -59,64 +61,50 @@ public class PlayerHealth : MonoBehaviour
         if (healthSlider != null)
             healthSlider.value = currentHealth;
 
+        // Ses
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayPlayerHurt();
+
+        // Ekran sarsıntısı
+        if (CameraShake.Instance != null)
+            CameraShake.Instance.Shake(shakeMagnitude, shakeDuration);
+
         if (currentHealth <= 0)
-        {
             Die();
-        }
         else
-        {
             StartCoroutine(InvincibilityRoutine());
-        }
     }
 
     IEnumerator InvincibilityRoutine()
     {
         isInvincible = true;
+        Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, true);
 
-        // Ghost mode: düşman collider'larıyla çarpışmayı kapat
-        SetCollisionWithEnemies(false);
-
-        // Beyaz flash — yanıp sön
         for (int i = 0; i < flashCount; i++)
         {
-            SetColor(hitColor);
+            SetColor(Color.white);
             yield return new WaitForSeconds(flashInterval);
             ResetColor();
             yield return new WaitForSeconds(flashInterval);
         }
 
-        // Kalan süreyi bekle
         float elapsed = flashCount * flashInterval * 2f;
         float remaining = invincibilityDuration - elapsed;
         if (remaining > 0f)
         {
-            // Yarı saydam göster — hâlâ invincible olduğunu belli et
             SetAlpha(0.5f);
             yield return new WaitForSeconds(remaining);
             SetAlpha(1f);
         }
 
-        // Ghost mode kapat
-        SetCollisionWithEnemies(true);
+        Physics2D.IgnoreLayerCollision(gameObject.layer, enemyLayer, false);
         isInvincible = false;
-    }
-
-    // Physics2D layer collision — düşmanlardan geç
-    void SetCollisionWithEnemies(bool collide)
-    {
-        int playerLayer = gameObject.layer;
-        // enemyLayer maskesindeki her layer ile çarpışmayı aç/kapat
-        for (int i = 0; i < 32; i++)
-        {
-            if ((enemyLayer.value & (1 << i)) != 0)
-                Physics2D.IgnoreLayerCollision(playerLayer, i, !collide);
-        }
     }
 
     void SetColor(Color c)
     {
-        for (int i = 0; i < renderers.Length; i++)
-            if (renderers[i]) renderers[i].color = c;
+        foreach (var r in renderers)
+            if (r) r.color = c;
     }
 
     void ResetColor()
@@ -139,6 +127,9 @@ public class PlayerHealth : MonoBehaviour
     void Die()
     {
         isDead = true;
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayGameOver();
 
         if (playerMovement != null) playerMovement.enabled = false;
         if (weaponScript != null) weaponScript.enabled = false;
