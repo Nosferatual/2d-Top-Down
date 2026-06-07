@@ -1565,12 +1565,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1920, y: 1080}
   m_ScreenMatchMode: 0
-  m_MatchWidthOrHeight: 0
+  m_MatchWidthOrHeight: 0.5
   m_PhysicalUnit: 3
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
@@ -254123,67 +254123,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1528201315}
   m_CullTransparentMesh: 1
---- !u!1001 &1556526237
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5712463339761248900, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: playOnAwake
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7461744226364953098, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_Name
-      value: Mage Particle 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 2.61
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8550448182088262723, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: a0159c22d78fb6f4482bef3bafd42e51, type: 3}
 --- !u!1 &1744195559
 GameObject:
   m_ObjectHideFlags: 0
@@ -255239,6 +255178,8 @@ MonoBehaviour:
   musicVolume: 0.5
   sfxSource: {fileID: 2142090820}
   sfxVolume: 1
+  menuMusic: {fileID: 0}
+  gameMusic: {fileID: 0}
   fireballHitClips:
   - {fileID: 8300000, guid: c4c07e4db455f5f45996248d8926178d, type: 3}
   - {fileID: 8300000, guid: da3b208ed090f6449ace4a215cf30dd7, type: 3}
@@ -255247,6 +255188,10 @@ MonoBehaviour:
   playerHurtClip: {fileID: 8300000, guid: 5dc75ba83c4a5324d8a52a6d680621d8, type: 3}
   gameOverClip: {fileID: 8300000, guid: ad923d2ec3deb8941b26a46d2dd2dd2d, type: 3}
   enemyAttackClip: {fileID: 0}
+  buttonClickClip: {fileID: 0}
+  mageSelectClip: {fileID: 0}
+  archerSelectClip: {fileID: 0}
+  lockedCharacterClip: {fileID: 0}
 --- !u!4 &2142090823
 Transform:
   m_ObjectHideFlags: 0
@@ -255276,4 +255221,3 @@ SceneRoots:
   - {fileID: 1088780984}
   - {fileID: 453940294}
   - {fileID: 925284979}
-  - {fileID: 1556526237}
