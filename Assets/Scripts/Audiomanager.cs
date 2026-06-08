@@ -21,12 +21,14 @@ public class AudioManager : MonoBehaviour
     public AudioClip playerHurtClip;
     public AudioClip gameOverClip;
     public AudioClip enemyAttackClip;
-    public AudioClip buttonClickClip;       // Genel buton sesi
+    public AudioClip buttonClickClip;
+    public AudioClip levelUpClip;
+    public AudioClip castClip;              // Büyücü ateş ederken
 
     [Header("Karakter Seçim Sesleri")]
-    public AudioClip mageSelectClip;        // Büyücü seçince
-    public AudioClip archerSelectClip;      // Okçu seçince
-    public AudioClip lockedCharacterClip;   // Kilitli karaktere basınca
+    public AudioClip mageSelectClip;
+    public AudioClip archerSelectClip;
+    public AudioClip lockedCharacterClip;
 
     void Awake()
     {
@@ -59,6 +61,8 @@ public class AudioManager : MonoBehaviour
     public void PlayGameOver()          => PlaySFX(gameOverClip);
     public void PlayEnemyAttack()       => PlaySFX(enemyAttackClip);
     public void PlayButtonClick()       => PlaySFX(buttonClickClip);
+    public void PlayLevelUp()           => PlaySFX(levelUpClip);
+    public void PlayCast()              => PlaySFX(castClip);
     public void PlayMageSelect()        => PlaySFX(mageSelectClip);
     public void PlayArcherSelect()      => PlaySFX(archerSelectClip);
     public void PlayLockedCharacter()   => PlaySFX(lockedCharacterClip);

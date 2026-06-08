@@ -8,7 +8,6 @@ public class MainMenu : MonoBehaviour
 
     void Start()
     {
-        // Ana menü açılınca müzik başlat
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayMenuMusic();
     }
@@ -17,14 +16,17 @@ public class MainMenu : MonoBehaviour
     {
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayButtonClick();
-        SceneManager.LoadScene(characterSelectScene);
+
+        if (SceneTransitioner.Instance != null)
+            SceneTransitioner.Instance.LoadScene(characterSelectScene);
+        else
+            SceneManager.LoadScene(characterSelectScene);
     }
 
     public void OnAyarlarClick()
     {
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayButtonClick();
-        // Şimdilik boş
     }
 
     public void OnCikisClick()

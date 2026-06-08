@@ -187,12 +187,13 @@ MonoBehaviour:
   attackRange: 1
   attackCooldown: 1.5
   damageAmount: 10
-  damageDelay: 0.4
+  damageDelay: 0.2
   separationRadius: 1
   separationForce: 5
   enemyLayer:
     serializedVersion: 2
     m_Bits: 256
+  spriteRenderer: {fileID: 0}
 --- !u!114 &-8116167157247625803
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -209,6 +210,9 @@ MonoBehaviour:
   currentHealth: 0
   deathVfx: {fileID: 6132360278523053856, guid: 9cffb895c32e34347892f54748468fb7, type: 3}
   effectDuration: 2
+  xpOrbPrefab: {fileID: 2977799278672978739, guid: b86c8fa9bf7a5324a9c7a5422e7c28b5, type: 3}
+  xpOrbCount: 2
+  orbScatterRadius: 0.5
   knockbackForce: 10
   stunTime: 0.3
   flashDuration: 0.08
@@ -245,7 +249,7 @@ Animator:
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 8eb97fd9ec6acd94884011d2c6bf2f59, type: 2}
   m_CullingMode: 0
-  m_UpdateMode: 0
+  m_UpdateMode: 1
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0

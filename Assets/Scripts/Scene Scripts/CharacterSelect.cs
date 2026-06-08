@@ -43,19 +43,20 @@ public class CharacterSelect : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayGameMusic();
 
-        SceneManager.LoadScene(gameScene);
+        if (SceneTransitioner.Instance != null)
+            SceneTransitioner.Instance.LoadScene(gameScene);
+        else
+            SceneManager.LoadScene(gameScene);
     }
 
     public void OnArcherSelected()
     {
-        // Kilitli — kilit sesi çal
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayLockedCharacter();
     }
 
     public void OnComingSoonSelected()
     {
-        // Kilitli — kilit sesi çal
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayLockedCharacter();
     }
@@ -64,6 +65,10 @@ public class CharacterSelect : MonoBehaviour
     {
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayButtonClick();
-        SceneManager.LoadScene("MainMenu");
+
+        if (SceneTransitioner.Instance != null)
+            SceneTransitioner.Instance.LoadScene("MainMenu");
+        else
+            SceneManager.LoadScene("MainMenu");
     }
 }

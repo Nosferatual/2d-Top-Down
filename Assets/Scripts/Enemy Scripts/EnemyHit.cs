@@ -11,6 +11,11 @@ public class EnemyHit : MonoBehaviour
     public GameObject deathVfx;
     public float effectDuration = 1f;
 
+    [Header("XP Orb")]
+    public GameObject xpOrbPrefab;      // Inspector'dan XpOrb prefabını sürükle
+    public int xpOrbCount = 3;          // Kaç orb saçılsın
+    public float orbScatterRadius = 0.5f; // Ne kadar dağılsın
+
     [Header("Vurulma Fizik")]
     public float knockbackForce = 3f;
     public float stunTime = 0.12f;
@@ -49,7 +54,6 @@ public class EnemyHit : MonoBehaviour
         if (currentHealth <= 0)
         {
             isDead = true;
-            // Flash ÖNCE çalışsın, SONRA öl — son canda da kırmızı görsün
             StartCoroutine(FlashThenDie());
         }
         else
@@ -75,14 +79,11 @@ public class EnemyHit : MonoBehaviour
 
     IEnumerator FlashThenDie()
     {
-        // Collider kapat — çift hasar/ölüm olmasın
         var col = GetComponent<Collider2D>();
         if (col) col.enabled = false;
-
         if (chaseScript) chaseScript.enabled = false;
         if (rb) rb.linearVelocity = Vector2.zero;
 
-        // Flash — son canda da görünsün
         SetColor(hitColor);
         yield return new WaitForSeconds(flashDuration * 2f);
         ResetColor();
@@ -104,15 +105,29 @@ public class EnemyHit : MonoBehaviour
 
     void Die()
     {
-        if (LevelManager.Instance != null)
-            LevelManager.Instance.TecrubeKazan(20);
-
+        // Ölüm efekti
         if (deathVfx != null)
         {
             GameObject fx = Instantiate(deathVfx, transform.position, Quaternion.identity);
             Destroy(fx, effectDuration);
         }
 
+        // XP orb saç
+        SpawnXpOrbs();
+
         Destroy(gameObject);
+    }
+
+    void SpawnXpOrbs()
+    {
+        if (xpOrbPrefab == null) return;
+
+        for (int i = 0; i < xpOrbCount; i++)
+        {
+            // Rastgele küçük offset — orblar üst üste gelmesin
+            Vector2 offset = Random.insideUnitCircle * orbScatterRadius;
+            Vector3 spawnPos = transform.position + new Vector3(offset.x, offset.y, 0f);
+            Instantiate(xpOrbPrefab, spawnPos, Quaternion.identity);
+        }
     }
 }

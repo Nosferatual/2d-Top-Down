@@ -1,6 +1,7 @@
 using UnityEngine;
-using UnityEngine.UI; // Slider için
-using TMPro;          // TextMeshPro yazıları için (BUNU UNUTMA!)
+using UnityEngine.UI;
+using TMPro;
+using System.Collections;
 
 public class LevelManager : MonoBehaviour
 {
@@ -13,14 +14,30 @@ public class LevelManager : MonoBehaviour
 
     [Header("UI Elemanları")]
     public Slider xpSlider;
-    public TextMeshProUGUI xpText;    // "50 / 100" yazan yer
-    public TextMeshProUGUI levelText; // "Level 5" yazan yer
-    public TextMeshProUGUI speedText; // "Hız: 1.2x" yazan yer
+    public TextMeshProUGUI xpText;
+    public TextMeshProUGUI levelText;
+    public TextMeshProUGUI speedText;
 
-    [Header("Ödül Ayarları")]
-    public float saldiriHiziBonusu = 0.2f;
+    [Header("Level Up Ekranı")]
+    public GameObject levelUpPanel;             // Kararan arka plan + butonlar
+    public CanvasGroup levelUpCanvasGroup;      // Fade için
+    public TextMeshProUGUI levelUpTitleText;    // "LEVEL 2!" yazısı
+    public float fadeDuration = 0.25f;
+
+    [Header("Level Up Seçenekleri - Butonlar")]
+    public Button moveSpeedButton;     // Yürüme hızı butonu
+    public Button attackSpeedButton;   // Atış hızı butonu
+
+    [Header("Buton Yazıları")]
+    public TextMeshProUGUI moveSpeedButtonText;
+    public TextMeshProUGUI attackSpeedButtonText;
+
+    [Header("Ödül Miktarları")]
+    public float hareketHiziBonusu = 0.5f;   // Her seçimde +0.5 hız
+    public float saldiriHiziBonusu = 0.2f;   // Her seçimde +0.2 atış hızı
 
     private Weapon playerWeapon;
+    private PlayerController playerController;
 
     void Awake()
     {
@@ -30,72 +47,135 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        // Silahı bul
         playerWeapon = FindAnyObjectByType<Weapon>();
-        
-        // Oyun başlayınca ekranı güncelle
+        playerController = FindAnyObjectByType<PlayerController>();
+
+        // Level up paneli başta kapalı
+        if (levelUpPanel) levelUpPanel.SetActive(false);
+        if (levelUpCanvasGroup) levelUpCanvasGroup.alpha = 0f;
+
         UI_Guncelle();
+        GuncelleButonYazilari();
     }
 
     public void TecrubeKazan(float miktar)
     {
         mevcutTecrube += miktar;
-        
-        // XP gelince güncelle
         UI_Guncelle();
 
         if (mevcutTecrube >= seviyeIcinGerekenXP)
-        {
             LevelAtla();
-        }
     }
 
     void LevelAtla()
     {
         mevcutTecrube -= seviyeIcinGerekenXP;
         seviye++;
-        seviyeIcinGerekenXP *= 1.2f; // Bir sonraki level zorlaşsın
+        seviyeIcinGerekenXP *= 1.2f;
 
-        Debug.Log($"TEBRİKLER! LEVEL {seviye} OLDUN!");
+        // Level up sesi
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayLevelUp();
 
-        // Silahı hızlandır
-        if (playerWeapon != null)
-        {
-            playerWeapon.IncreaseAttackSpeed(saldiriHiziBonusu);
-        }
-
-        // Level atlayınca her şeyi güncelle
         UI_Guncelle();
+        StartCoroutine(AcLevelUpEkrani());
     }
 
-    // Tüm UI işlemlerini tek yerde yapıyoruz, kafa karışıklığı olmasın
+    IEnumerator AcLevelUpEkrani()
+    {
+        // Oyunu durdur
+        Time.timeScale = 0f;
+
+        if (levelUpTitleText) levelUpTitleText.text = $"LEVEL {seviye}!";
+
+        levelUpPanel.SetActive(true);
+        GuncelleButonYazilari();
+
+        // Fade in — unscaledDeltaTime çünkü timeScale = 0
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            if (levelUpCanvasGroup)
+                levelUpCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+            yield return null;
+        }
+        if (levelUpCanvasGroup) levelUpCanvasGroup.alpha = 1f;
+    }
+
+    void KapatLevelUpEkrani()
+    {
+        StartCoroutine(KapatRoutine());
+    }
+
+    IEnumerator KapatRoutine()
+    {
+        float elapsed = 0f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            if (levelUpCanvasGroup)
+                levelUpCanvasGroup.alpha = Mathf.Lerp(1f, 0f, elapsed / fadeDuration);
+            yield return null;
+        }
+
+        levelUpPanel.SetActive(false);
+        Time.timeScale = 1f; // Oyunu devam ettir
+    }
+
+    // Yürüme hızı seçildi
+    public void OnMoveSpeedSelected()
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayButtonClick();
+
+        if (playerController != null)
+            playerController.moveSpeed += hareketHiziBonusu;
+
+        UI_Guncelle();
+        KapatLevelUpEkrani();
+    }
+
+    // Atış hızı seçildi
+    public void OnAttackSpeedSelected()
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayButtonClick();
+
+        if (playerWeapon != null)
+            playerWeapon.IncreaseAttackSpeed(saldiriHiziBonusu);
+
+        UI_Guncelle();
+        KapatLevelUpEkrani();
+    }
+
+        void GuncelleButonYazilari()
+    {
+        float mevcutHiz = playerController != null ? playerController.moveSpeed : 0f;
+        float mevcutAtis = playerWeapon != null ? playerWeapon.attackSpeedMultiplier : 1f;
+
+        if (moveSpeedButtonText)
+            moveSpeedButtonText.text = $"Move Speed\n{mevcutHiz:F1} -> {mevcutHiz + hareketHiziBonusu:F1}";
+
+        if (attackSpeedButtonText)
+            attackSpeedButtonText.text = $"Attack Speed\n{mevcutAtis:F1}x -> {mevcutAtis + saldiriHiziBonusu:F1}x";
+    }
+
     void UI_Guncelle()
     {
-        // 1. Slider Güncelle
         if (xpSlider != null)
         {
             xpSlider.maxValue = seviyeIcinGerekenXP;
             xpSlider.value = mevcutTecrube;
         }
 
-        // 2. XP Yazısını Güncelle (Örn: "40 / 120")
-        // "F0" virgülden sonra sayı gösterme demek (tam sayı)
         if (xpText != null)
-        {
             xpText.text = $"{mevcutTecrube:F0} / {seviyeIcinGerekenXP:F0}";
-        }
 
-        // 3. Level Yazısını Güncelle
         if (levelText != null)
-        {
             levelText.text = $"LEVEL {seviye}";
-        }
 
-        // 4. Hız Çarpanını Göster (Silahın üzerinden okuyoruz)
         if (speedText != null && playerWeapon != null)
-        {
-            // "F1" virgülden sonra tek basamak göster demek (1.2x gibi)
             speedText.text = $"HIZ: {playerWeapon.attackSpeedMultiplier:F1}x";
-        }
     }
 }

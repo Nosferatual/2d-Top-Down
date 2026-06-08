@@ -193,6 +193,7 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 256
+  spriteRenderer: {fileID: 0}
 --- !u!114 &-484895213488555444
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -209,6 +210,9 @@ MonoBehaviour:
   currentHealth: 0
   deathVfx: {fileID: 6858479745648769141, guid: 0f546d4ea9ec5ad4fa926c740f486dac, type: 3}
   effectDuration: 1
+  xpOrbPrefab: {fileID: 2977799278672978739, guid: b86c8fa9bf7a5324a9c7a5422e7c28b5, type: 3}
+  xpOrbCount: 3
+  orbScatterRadius: 0.5
   knockbackForce: 10
   stunTime: 0.3
   flashDuration: 0.08

@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class Weapon : MonoBehaviour
 {
@@ -13,9 +12,9 @@ public class Weapon : MonoBehaviour
     public float fireAtNormalized = 0.01f;
 
     [Header("Cast Efekti")]
-    public GameObject castVfxPrefab; // Inspector'dan MageCastVFX prefabını sürükle
+    public GameObject castVfxPrefab;
 
-    [Header("Auto-Aim (Otomatik Hedefleme)")]
+    [Header("Auto-Aim")]
     public float targetRange = 10f;
     public LayerMask enemyLayer;
 
@@ -68,11 +67,9 @@ public class Weapon : MonoBehaviour
         while (InAttack() && failSafe > 0f)
         {
             failSafe -= Time.deltaTime;
-
             if (anim.IsInTransition(0)) { yield return null; continue; }
 
             var st = anim.GetCurrentAnimatorStateInfo(0);
-
             if (!shot && st.normalizedTime >= fireAtNormalized)
             {
                 SpawnMagicOrb();
@@ -106,8 +103,8 @@ public class Weapon : MonoBehaviour
 
     void SpawnMagicOrb()
     {
-        if (bulletPrefab == null) { Debug.LogError("KRİTİK HATA: Mermi Prefab'ı BOŞ!"); return; }
-        if (firePoint == null)    { Debug.LogError("KRİTİK HATA: Fire Point BOŞ!"); return; }
+        if (bulletPrefab == null) { Debug.LogError("Mermi Prefab BOŞ!"); return; }
+        if (firePoint == null)    { Debug.LogError("Fire Point BOŞ!"); return; }
 
         Vector2 shootDir = Vector2.right;
         Transform closestEnemy = FindClosestEnemy();
@@ -115,23 +112,25 @@ public class Weapon : MonoBehaviour
         if (closestEnemy != null)
         {
             shootDir = (closestEnemy.position - firePoint.position).normalized;
-
-            if (shootDir.x < 0)
-                transform.parent.localScale = new Vector3(-1, 1, 1);
-            else
-                transform.parent.localScale = new Vector3(1, 1, 1);
+            transform.parent.localScale = shootDir.x < 0
+                ? new Vector3(-1, 1, 1)
+                : new Vector3(1, 1, 1);
         }
         else
         {
             shootDir = transform.parent.localScale.x < 0 ? Vector2.left : Vector2.right;
         }
 
-        // Cast efekti — firePoint'te mavi parlama
+        // Cast efekti
         if (castVfxPrefab != null)
         {
             GameObject vfx = Instantiate(castVfxPrefab, firePoint.position, Quaternion.identity);
             Destroy(vfx, 0.4f);
         }
+
+        // Cast sesi
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayCast();
 
         var go = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
         var rbBullet = go.GetComponent<Rigidbody2D>();
@@ -143,16 +142,11 @@ public class Weapon : MonoBehaviour
     {
         Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, targetRange, enemyLayer);
         Transform closest = null;
-        float minDistance = Mathf.Infinity;
-
-        foreach (Collider2D enemy in enemies)
+        float minDist = Mathf.Infinity;
+        foreach (Collider2D e in enemies)
         {
-            float distance = Vector2.Distance(transform.position, enemy.transform.position);
-            if (distance < minDistance)
-            {
-                minDistance = distance;
-                closest = enemy.transform;
-            }
+            float d = Vector2.Distance(transform.position, e.transform.position);
+            if (d < minDist) { minDist = d; closest = e.transform; }
         }
         return closest;
     }
