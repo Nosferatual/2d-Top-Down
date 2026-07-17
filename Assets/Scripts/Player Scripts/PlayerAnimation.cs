@@ -4,10 +4,10 @@ public class PlayerAnimation : MonoBehaviour
 {
     [Header("SPUM Karakteri")]
     [Tooltip("Hiyerarşideki Unit1 (veya SPUM) objesini buraya sürükle")]
-    public Transform visualBody; 
+    public Transform visualBody;
 
     [Header("Yön Ayarı")]
-    public bool isSpumFacingLeft = true; 
+    public bool isSpumFacingLeft = true;
 
     Animator    anim;
     Rigidbody2D rb;
@@ -15,16 +15,16 @@ public class PlayerAnimation : MonoBehaviour
     Vector2 lastPos;
     bool    moving;
     float   lastDeltaX;
-    Vector3 originalScale; 
+    Vector3 originalScale;
 
     void Awake()
     {
         anim = GetComponentInChildren<Animator>();
         rb   = GetComponent<Rigidbody2D>();
-        
+
         if (visualBody != null) originalScale = visualBody.localScale;
         else originalScale = Vector3.one;
-        
+
         lastPos = rb ? rb.position : (Vector2)transform.position;
     }
 
@@ -33,17 +33,12 @@ public class PlayerAnimation : MonoBehaviour
         Vector2 now   = rb ? rb.position : (Vector2)transform.position;
         Vector2 delta = now - lastPos;
 
-        // ANINDA TEPKİ: Yumuşatmayı (Smooth) sildik, direkt hıza bakıyoruz.
         float rawSpeed = delta.magnitude / Mathf.Max(Time.fixedDeltaTime, 0.0001f);
-        
-        // Hız 0.1'den büyükse anında koş, küçükse anında dur. (Kaymayı engeller)
         moving = rawSpeed > 0.1f;
 
-        if (Mathf.Abs(delta.x) > 0.001f) 
-        {
+        if (Mathf.Abs(delta.x) > 0.001f)
             lastDeltaX = delta.x;
-        }
-        
+
         lastPos = now;
     }
 
@@ -60,15 +55,22 @@ public class PlayerAnimation : MonoBehaviour
         if (visualBody != null)
         {
             float absX = Mathf.Abs(originalScale.x);
-            
-            if (lastDeltaX > 0.001f) 
-            {
+
+            if (lastDeltaX > 0.001f)
                 visualBody.localScale = new Vector3(isSpumFacingLeft ? -absX : absX, originalScale.y, originalScale.z);
-            }
-            else if (lastDeltaX < -0.001f) 
-            {
+            else if (lastDeltaX < -0.001f)
                 visualBody.localScale = new Vector3(isSpumFacingLeft ? absX : -absX, originalScale.y, originalScale.z);
-            }
+        }
+    }
+
+    // PlayerHealth tarafından çağrılır
+    public void TriggerDeath()
+    {
+        if (anim != null)
+        {
+            anim.SetTrigger("Die");
+            anim.SetBool("Run", false);
+            anim.SetFloat("RunState", 0f);
         }
     }
 

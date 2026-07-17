@@ -24,7 +24,7 @@ public class PlayerHealth : MonoBehaviour
     [Header("UI")]
     public Slider healthSlider;
 
-    Animator anim;
+    PlayerAnimation playerAnim;   // Animator yerine PlayerAnimation kullanıyoruz
     PlayerMovement playerMovement;
     Weapon weaponScript;
     SpriteRenderer[] renderers;
@@ -42,7 +42,10 @@ public class PlayerHealth : MonoBehaviour
             healthSlider.value = currentHealth;
         }
 
-        anim = GetComponent<Animator>();
+        // PlayerAnimation root objesinde veya child'da
+        playerAnim = GetComponent<PlayerAnimation>();
+        if (playerAnim == null) playerAnim = GetComponentInChildren<PlayerAnimation>();
+
         playerMovement = GetComponent<PlayerMovement>();
         weaponScript = GetComponentInChildren<Weapon>();
 
@@ -61,11 +64,9 @@ public class PlayerHealth : MonoBehaviour
         if (healthSlider != null)
             healthSlider.value = currentHealth;
 
-        // Ses
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayPlayerHurt();
 
-        // Ekran sarsıntısı
         if (CameraShake.Instance != null)
             CameraShake.Instance.Shake(shakeMagnitude, shakeDuration);
 
@@ -139,7 +140,9 @@ public class PlayerHealth : MonoBehaviour
 
         GetComponent<Collider2D>().enabled = false;
 
-        if (anim != null) anim.SetTrigger("Die");
+        // PlayerAnimation üzerinden death trigger'ı tetikle
+        if (playerAnim != null)
+            playerAnim.TriggerDeath();
 
         Invoke(nameof(RestartGame), 2f);
     }

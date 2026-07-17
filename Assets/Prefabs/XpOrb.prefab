@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4725480568211298992}
   - component: {fileID: 7426432081611104757}
   - component: {fileID: 9202276771547689963}
+  - component: {fileID: 8534324191436577501}
   m_Layer: 9
   m_Name: XpOrb
   m_TagString: Untagged
@@ -141,8 +142,39 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96a9a63f9de7f744c942af52e1eb2343, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::XpOrb
-  xpAmount: 20
+  xpAmount: 10
   moveSpeed: 5
-  pickupRadius: 0.8
   attractRadius: 3
+  pickupRadius: 0.8
   lifetime: 8
+  scatterForce: 2
+  colorA: {r: 0, g: 1, b: 0.8596248, a: 1}
+  colorB: {r: 1, g: 0.92759216, b: 0, a: 1}
+  pulseSpeed: 5
+--- !u!50 &8534324191436577501
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2977799278672978739}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0

@@ -25,8 +25,8 @@ public class MainMenu : MonoBehaviour
 
     public void OnAyarlarClick()
     {
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayButtonClick();
+        // OptionsMenu scripti hallediyor — bu fonksiyon artık kullanılmıyor
+        // OnClick'i OptionsMenu'deki OnOptionsClick'e bağla
     }
 
     public void OnCikisClick()

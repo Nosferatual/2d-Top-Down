@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-
+using UnityEngine.EventSystems;
 public class Weapon : MonoBehaviour
 {
     [Header("Fire Ayarları")]
@@ -37,6 +37,10 @@ public class Weapon : MonoBehaviour
 
     public void FireAttack()
     {
+        
+        // FireAttack() içine ekle:
+        EventSystem.current.SetSelectedGameObject(null);
+
         float currentCooldown = baseAttackCooldown / attackSpeedMultiplier;
         if (!busy && Time.time >= nextFireTime)
         {
